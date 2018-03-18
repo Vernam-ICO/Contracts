@@ -14,7 +14,7 @@ contract VernamWhiteListDeposit {
 	uint256 public constant whiteListPeriod = 47 days; 			// 47 days active
 	
 	function VernamWhiteListDeposit() public {
-		benecifiary = 0xca442489a0570a58fb2da8a64f1b331d4634ae10;
+		benecifiary = .....;
 		deadLine = block.timestamp + whiteListPeriod;
 		participants.length = 0;
 	}
