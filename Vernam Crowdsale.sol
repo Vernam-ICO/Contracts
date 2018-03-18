@@ -78,6 +78,14 @@ contract VernamCrowdSale is Ownable {
 	uint public startTime;
 	uint public totalSoldTokens;
 	uint constant FIFTEEN_ETHERS = 15 ether;
+	uint constant minimumContribution = 100 finney;
+	
+	uint constant public privatePreSaleDuration = 3 hours;
+	uint constant public privatePreSalePrice = 100000000000000 wei; //1 eth == 10 000
+	uint constant public privatePreSaleTokens = 100000; // 100 000 tokens
+	
+	uint public privatePreSaleEnd;
+
 
 	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPrice = 100000000000000 wei; //1 eth == 10 000
@@ -108,22 +116,22 @@ contract VernamCrowdSale is Ownable {
 	mapping(address => OrderDetail) public OrdersDetail;
 
 	struct OrderDetail {
-		uint256 privatePresale;
+		uint256 privatePresaleTokens;
 		uint256 privatePresaleWEI;
 
-		uint256 threeHotHours;
+		uint256 threeHotHoursTokens;
 		uint256 threeHotHoursWEI;
 
-		uint256 firstStage;
+		uint256 firstStageTokens;
 		uint256 firstStageWEI;
 
-		uint256 secondStage;
+		uint256 secondStageTokens;
 		uint256 secondStageWEI;
 
-		uint256 thirdStageWithDiscount;
+		uint256 thirdStageWithDiscountTokens;
 		uint256 thirdStageWithDiscountWEI;
 
-		uint256 thirdStage;
+		uint256 thirdStageTokens;
 		uint256 thirdStageWEI;
 	}
 
@@ -134,7 +142,8 @@ contract VernamCrowdSale is Ownable {
 	
 	function activateCrowdSale() public onlyOwner {
 		startTime = block.timestamp;
-		threeHotHoursEnd = startTime.add(threeHotHoursDuration);
+		privatePreSaleEnd = startTime.add(privatePreSaleDuration);
+		threeHotHoursEnd = privatePreSaleEnd.add(threeHotHoursDuration);
 		firstStageEnd = threeHotHoursEnd.add(firstStageDuration);
 		secondStageEnd = firstStageEnd.add(secondStageDuration);
 		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
@@ -145,10 +154,17 @@ contract VernamCrowdSale is Ownable {
 	}
 	
 	function buyTokens(address _participant, uint256 _weiAmount) public payable returns(bool) {
-		OrdersDetail[_participant].privatePresaleWEI = OrdersDetail[_participant].privatePresaleWEI.add(_weiAmount);
+		require(_weiAmount > minimumContribution); // if value is smaller than most expensive stage price will count 0 tokens 
+		uint256 _price = getTokenPrice(_weiAmount);
+		writeOrder(_participant,_weiAmount,_price);
 	}
 	
     function getTokenPrice(uint256 _weiAmount) public view returns (uint256) {
+		
+		if(block.timestamp < privatePreSaleEnd && totalSoldTokens < privatePreSaleTokens){
+			return privatePreSalePrice;
+		}
+		
 		if(block.timestamp < threeHotHoursEnd && totalSoldTokens < threeHotHoursTokens){
 			return threeHotHoursPrice;
 		}
@@ -165,8 +181,33 @@ contract VernamCrowdSale is Ownable {
 			return thirdStageDiscountPrice;
 		}
 		
-		return thirdStagePrice;
+		if(block.timestamp < thirdStageEnd && totalSoldTokens < thirdStageTokens){
+			return thirdStagePrice;
+		}
+		revert();
 	}
+	
+	function writeOrder(address _participant, uint256 _weiAmount, uint _price) internal {
+		if(_price == privatePreSalePrice) {
+			OrdersDetail[_participant].privatePresaleTokens = OrdersDetail[_participant].privatePresaleTokens.add(_weiAmount.div(_price));
+			OrdersDetail[_participant].privatePresaleWEI = OrdersDetail[_participant].privatePresaleWEI.add(_weiAmount);
+		}else if (_price == threeHotHoursPrice) {
+			OrdersDetail[_participant].threeHotHoursTokens = OrdersDetail[_participant].threeHotHoursTokens.add(_weiAmount.div(_price));
+			OrdersDetail[_participant].threeHotHoursWEI = OrdersDetail[_participant].threeHotHoursWEI.add(_weiAmount);
+		}else if (_price == firstStagePrice) {
+			OrdersDetail[_participant].firstStageTokens = OrdersDetail[_participant].firstStageTokens.add(_weiAmount.div(_price));
+			OrdersDetail[_participant].firstStageWEI = OrdersDetail[_participant].firstStageWEI.add(_weiAmount);
+		}else if (_price == secondStagePrice) {
+			OrdersDetail[_participant].secondStageTokens = OrdersDetail[_participant].secondStageTokens.add(_weiAmount.div(_price));
+			OrdersDetail[_participant].secondStageWEI = OrdersDetail[_participant].secondStageWEI.add(_weiAmount);
+		}else if (_price == thirdStageDiscountPrice) {
+			OrdersDetail[_participant].thirdStageWithDiscountTokens = OrdersDetail[_participant].thirdStageWithDiscountTokens.add(_weiAmount.div(_price));
+			OrdersDetail[_participant].thirdStageWithDiscountWEI = OrdersDetail[_participant].thirdStageWithDiscountWEI.add(_weiAmount);
+		}else {
+			OrdersDetail[_participant].thirdStageTokens = OrdersDetail[_participant].thirdStageTokens.add(_weiAmount.div(_price));
+			OrdersDetail[_participant].thirdStageWEI = OrdersDetail[_participant].thirdStageWEI.add(_weiAmount);
+		}
+	} 
 }
 	
 	
