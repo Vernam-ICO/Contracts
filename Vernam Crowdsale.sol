@@ -67,6 +67,7 @@ contract VernamCrowdSale is Ownable {
 	address public benecifiary;
 	
 	bool public isThreeHotHoursActive;
+	bool isInPrivatePreSale;
 	
 	uint public startTime;
 	uint public totalSoldTokens;
@@ -114,23 +115,35 @@ contract VernamCrowdSale is Ownable {
 	
 	uint constant public TokensHardCap = 500000000000000000000000000;  //500 000 000 with 18 decimals
 	
+	// Constants for Realase Three Hot Hours
+	uint constant public LOCK_TOKENS_DURATION = 30 days;
+	uint constant public FIRST_MONTH = LOCK_TOKENS_DURATION;
+	uint constant public SECOND_MONTH = LOCK_TOKENS_DURATION + FIRST_MONTH;
+	uint constant public THIRD_MONTH = LOCK_TOKENS_DURATION + SECOND_MONTH;
+	uint constant public FOURTH_MONTH = LOCK_TOKENS_DURATION + THIRD_MONTH;
+	uint constant public FIFTH_MONTH = LOCK_TOKENS_DURATION + FOURTH_MONTH;
+	uint constant public SIXTH_MONTH = LOCK_TOKENS_DURATION + FIFTH_MONTH;
+	
+	mapping(address => uint256) whenBought;
+	
 	mapping(address => uint256) public contributedInWei;
 	mapping(address => uint256) public boughtTokens;
 	
 	mapping(address => uint256) public threeHotHoursTokens;
 	// VernamCrowdsaleToken public VCT;
-	
-	// Events
-	event Refunded(address _participant, uint amountInWei);
-	
 
 
 	function VernamCrowdSale() public {
 		benecifiary = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
 		// VCT = VernamCrowdsaleToken(address);
+		
+		startTime = block.timestamp;
+		privatePreSaleEnd = startTime.add(privatePreSaleDuration);
+		isInPrivatePreSale = true;
 	}
 	
 	function activateCrowdSale() public onlyOwner {
+		require(isInPrivatePreSale = true);
 	    isThreeHotHoursActive = true;
 		startTime = block.timestamp;
 		// privatePreSaleEnd = startTime.add(privatePreSaleDuration);
@@ -147,6 +160,13 @@ contract VernamCrowdSale is Ownable {
 	function buyTokens(address _participant, uint256 _weiAmount) public payable returns(bool) {
 		require(_weiAmount >= minimumContribution); // if value is smaller than most expensive stage price will count 0 tokens 
 		
+		validatePurchase(_participant, _weiAmount);
+		
+		if (isInPrivatePreSale = true) {
+		    privatePresaleBuy(_participant, _weiAmount);  
+		    return true;
+		}
+		
 		uint256 currentLevelTokens;
 		uint256 nextLevelTokens;
 		(currentLevelTokens, nextLevelTokens) = calculateAndCreateTokens(_weiAmount);
@@ -160,6 +180,7 @@ contract VernamCrowdSale is Ownable {
 		if(isThreeHotHoursActive == true) {
 			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
 			boughtTokens[_participant] = boughtTokens[_participant].add(nextLevelTokens);
+			whenBought[_participant] = block.timestamp;
 		} else {	
 			boughtTokens[_participant] = boughtTokens[_participant].add(currentLevelTokens.add(nextLevelTokens));
 		}
@@ -167,20 +188,24 @@ contract VernamCrowdSale is Ownable {
 		totalSoldTokens = totalSoldTokens.add(currentLevelTokens.add(nextLevelTokens));
 		totalContributedWei = totalContributedWei.add(_weiAmount);
 		
-		return true;
-		
 		//Event
-
+		
+		return true;
+	}
+	
+	function privatePresaleBuy(address _participant, uint256 _weiAmount) internal {
+		require(isInPrivatePreSale == true);
+		require(totalSoldTokens < privatePreSaleTokensCap);
+        require(block.timestamp < privatePreSaleEnd && totalSoldTokens < privatePreSaleTokensCap);
+        
+		uint tokens = _weiAmount.div(privatePreSalePriceOfTokenInWei);
+		boughtTokens[_participant] = boughtTokens[_participant].add(tokens);
+		
+		totalSoldTokens = totalSoldTokens.add(tokens);
 	}
 	
 	function calculateAndCreateTokens(uint256 weiAmount) public returns (uint256 _tokensCurrentAmount, uint256 _tokensNextAmount) {
-		
-		// The private presale operations must be in another functions 
-		/*if(block.timestamp < privatePreSaleEnd && totalSoldTokens < privatePreSaleTokens){
-			return privatePreSalePrice;
-		}*/
-		
-		// Safe math will be used 
+
 		if(block.timestamp < threeHotHoursEnd && totalSoldTokens < threeHotHoursTokensCap) {
 		    (_tokensCurrentAmount, _tokensNextAmount) = tokensCalculator(weiAmount, threeHotHoursPriceOfTokenInWei, firstStagePriceOfTokenInWei, threeHotHoursCapInWei);
 			
@@ -211,7 +236,7 @@ contract VernamCrowdSale is Ownable {
 		revert();
 	}
 	
-	function tokensCalculator(uint256 weiAmount, uint256 currentLevelPrice, uint256 nextLevelPrice, uint256 currentLevelCap) internal returns (uint256, uint256){
+	function tokensCalculator(uint256 weiAmount, uint256 currentLevelPrice, uint256 nextLevelPrice, uint256 currentLevelCap) internal view returns (uint256, uint256){
 	    uint currentAmountInWei = 0;
 		uint remainingAmountInWei = 0;
 		uint currentAmount = 0;
@@ -230,10 +255,69 @@ contract VernamCrowdSale is Ownable {
 		return (currentAmount, nextAmount);
 	}
 	
-	function realaseThreeHotHour(address _participant, uint256 _amount) public onlyController returns(bool) {
+	mapping(address => uint256) percentage;
+	mapping(address => mapping(uint256 => bool)) getTokens;
+	
+	function realaseThreeHotHour(address _participant) public onlyController returns(bool) {
+		uint256 _amount = unlockTokensAmount(_participant);
+		
 		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
 		boughtTokens[_participant] = boughtTokens[_participant].add(_amount);
+		
 		return true;
 	}
-    
+	
+	function unlockTokensAmount(address _participant) internal view returns (uint) {
+        uint startTHHTime = whenBought[_participant];
+        uint _balanceAtTHH = threeHotHoursTokens[_participant];
+		
+		require(_balanceAtTHH > 0);
+		
+        if(block.timestamp < startTHHTime + FIRST_MONTH && getTokens[msg.sender][startTHHTime + FIRST_MONTH] == false) {
+            percentage[msg.sender] += 10;
+            getTokens[msg.sender][startTHHTime + FIRST_MONTH] = true;
+            
+            return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
+        } 
+        
+        if(block.timestamp < startTHHTime + SECOND_MONTH && getTokens[msg.sender][startTHHTime + SECOND_MONTH] == false) 
+        {
+            percentage[msg.sender] = 20 - percentage[msg.sender];
+            getTokens[msg.sender][startTHHTime + SECOND_MONTH] = true;
+            
+            return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
+        } 
+        
+        if(block.timestamp < startTHHTime + THIRD_MONTH && getTokens[msg.sender][startTHHTime + THIRD_MONTH] == false) {
+            percentage[msg.sender] = 30 - percentage[msg.sender];
+            getTokens[msg.sender][startTHHTime + THIRD_MONTH] = true;
+            
+            return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
+        } 
+        
+        if(block.timestamp < startTHHTime + FOURTH_MONTH && getTokens[msg.sender][startTHHTime + FOURTH_MONTH] == false) {
+            percentage[msg.sender] = 50 - percentage[msg.sender];
+            getTokens[msg.sender][startTHHTime + FOURTH_MONTH] = true;
+            
+            return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
+        } 
+        
+        if(block.timestamp < startTHHTime + FIFTH_MONTH && getTokens[msg.sender][startTHHTime + FIFTH_MONTH] == false) {
+            percentage[msg.sender] = 70 - percentage[msg.sender];
+            getTokens[msg.sender][startTHHTime + FIFTH_MONTH] = true;
+            
+            return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
+        } 
+        
+        if(block.timestamp < startTHHTime + SIXTH_MONTH && getTokens[msg.sender][startTHHTime + FIFTH_MONTH] == false) {
+            getTokens[msg.sender][startTHHTime + SIXTH_MONTH] == true;
+            
+            return _balanceAtTHH;
+        }
+    }
+	
+	function validatePurchase(address _participant, uint256 _weiAmount) pure internal {
+        require(_participant != address(0));
+        require(_weiAmount != 0);
+    }
 }
