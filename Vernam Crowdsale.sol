@@ -40,13 +40,13 @@ contract Ownable {
 	}
 
 	modifier onlyOwner() {
-		require(msg.sender == owner || msg.sender == owner1);
+		require(msg.sender == owner);
 		_;
 	}
 
 	function transferOwnership(address newOwner) public onlyOwner {
 		require(newOwner != address(0));
-		OwnershipTransferred(owner, newOwner);
+		emit OwnershipTransferred(owner, newOwner);
 		owner = newOwner;
 	}
 
@@ -65,52 +65,51 @@ contract VernamCrowdSale is Ownable {
 
 	
 	uint constant public privatePreSaleDuration = 3 hours;
-	uint constant public privatePreSaleCapInWei = 100000000000000 wei; //1 eth == 10 000
-	uint constant public privatePreSaleTokens = 100000; // 100 000 tokens
+	uint constant public privatePreSalePriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
+	uint constant public privatePreSaleTokensCap = 100000; // 100 000 tokens
 	
 	uint public privatePreSaleEnd;
 
 	uint constant public threeHotHoursDuration = 3 hours;
-	uint constant public threeHotHoursCapInWei = 100000000000000 wei; //1 eth == 10 000
-	uint constant public threeHotHoursTokens = 100000; // 100 000 tokens
-	
-	uint tokensPerEthInTHH = 1 ether / threeHotHoursCapInWei;
+	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
+	uint constant public threeHotHoursTokensCap = 100000; // 100 000 tokens
+	uint constant public threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul(threeHotHoursTokensCap);
 
 	uint public threeHotHoursEnd;
 	
 	uint constant public firstStageDuration = 24 hours;
-	uint constant public firstStageCapInWei = 200000000000000 wei;    //1 eth == 5000
-	uint constant public firstStageTokens = 100000; // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
-
-    uint tokensPerEthInFirstStage = 1 ether / firstStageCapInWei;
+	uint constant public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
+	uint constant public firstStageTokensCap = 100000; // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
+    uint constant public firstStageCapInWei = firstStagePriceOfTokenInWei.mul(firstStageTokensCap);
     
 	uint public firstStageEnd;
 	
 	uint constant public secondStageDuration = 6 days;
-	uint constant public secondStageCapInWei = 400000000000000 wei; //1 eth == 2500
-	uint constant public secondStageTokens = 100000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
-
-    uint tokensPerEthInSecondStage = 1 ether / secondStageCapInWei;
+	uint constant public secondStagePriceOfTokenInWei = 400000000000000 wei; //1 eth == 2500
+	uint constant public secondStageTokensCap = 100000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
+    uint constant public secondStageCapInWei = secondStagePriceOfTokenInWei.mul(secondStageTokensCap);
     
 	uint public secondStageEnd;
 	
 	uint constant public thirdStageDuration = 26 days;
-	uint constant public thirdStageCapInWei = 600000000000000 wei;          //1 eth == 1500
+	uint constant public thirdStagePriceOfTokenInWei = 600000000000000 wei;          //1 eth == 1500
 	
-	uint tokensPerEthInThirdStage = 1 ether / thirdStageCapInWei;
-	
-	uint constant public thirdStageDiscountCapInWei = 800000000000000 wei; //1 eth == 1250
-	
-	uint tokensPerEthInThirdDiscountStage = 1 ether / thirdStageDiscountCapInWei;
+	uint constant public thirdStageDiscountPriceOfTokenInWei = 800000000000000 wei; //1 eth == 1250
 	
 	uint constant public thirdStageTokens = 100000; // 100 000 tokens //maybe not constant because we must recalculate if previous have remainig
 	uint public thirdStageEnd;
+	
+	uint constant public thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul(thirdStageTokens);
+	uint constant public thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul(thirdStageTokens);
 	
 	uint constant public TokensHardCap = 500000000000000000000000000;  //500 000 000 with 18 decimals
 	
 	mapping(address => OrderDetail) public OrdersDetail;
 
-	VernamCrowdsaleToken public VCT;
+	// VernamCrowdsaleToken public VCT;
+	
+	// Events
+	event Refunded(address _participant, uint amountInWei);
 	
 	struct OrderDetail {
 		uint256 privatePresaleWEI;
@@ -135,7 +134,7 @@ contract VernamCrowdSale is Ownable {
 
 	function VernamCrowdSale() public {
 		benecifiary = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
-		VCT = VernamCrowdsaleToken(address);
+		// VCT = VernamCrowdsaleToken(address);
 	}
 	
 	function activateCrowdSale() public onlyOwner {
@@ -173,28 +172,28 @@ contract VernamCrowdSale is Ownable {
 		}*/
 		
 		// Safe math will be used 
-		if(block.timestamp < threeHotHoursEnd && totalSoldTokens < threeHotHoursEnd) {
-		    _tokensAmount = tokensCalculator(weiAmount, tokensPerEthInTHH, tokensPerEthInFirstStage, threeHotHoursCapInWei);
+		if(block.timestamp < threeHotHoursEnd && totalSoldTokens < threeHotHoursTokensCap) {
+		    _tokensAmount = tokensCalculator(weiAmount, threeHotHoursPriceOfTokenInWei, firstStagePriceOfTokenInWei, threeHotHoursCapInWei);
 			return _tokensAmount;
 		}
 		
-		if(block.timestamp < firstStageEnd && totalSoldTokens < firstStageTokens) {
-		    _tokensAmount = tokensCalculator(weiAmount, tokensPerEthInFirstStage, tokensPerEthInSecondStage, firstStageCapInWei);
+		if(block.timestamp < firstStageEnd && totalSoldTokens < firstStageTokensCap) {
+		    _tokensAmount = tokensCalculator(weiAmount, firstStagePriceOfTokenInWei, secondStagePriceOfTokenInWei, firstStageCapInWei);
 			return _tokensAmount;
 		}
 		
-		if(block.timestamp < secondStageEnd && totalSoldTokens < secondStageTokens) {
-			_tokensAmount = tokensCalculator(weiAmount, tokensPerEthInSecondStage, tokensPerEthInThirdStage, secondStageCapInWei);
+		if(block.timestamp < secondStageEnd && totalSoldTokens < secondStageTokensCap) {
+			_tokensAmount = tokensCalculator(weiAmount, secondStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, secondStageCapInWei);
 			return _tokensAmount;
 		}
 		
 		if(block.timestamp < thirdStageEnd && totalSoldTokens < thirdStageTokens && weiAmount > FIFTEEN_ETHERS) {
-			_tokensAmount = tokensCalculator(weiAmount, tokensPerEthInThirdDiscountStage, tokensPerEthInThirdDiscountStage, thirdStageDiscountCapInWei);
+			_tokensAmount = tokensCalculator(weiAmount, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountCapInWei);
 			return _tokensAmount;
 		}
 		
 		if(block.timestamp < thirdStageEnd && totalSoldTokens < thirdStageTokens){
-			_tokensAmount = tokensCalculator(weiAmount, tokensPerEthInThirdStage, tokensPerEthInThirdStage, thirdStageCapInWei);
+			_tokensAmount = tokensCalculator(weiAmount, thirdStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, thirdStageCapInWei);
 			return _tokensAmount;
 		}
 		
@@ -209,7 +208,7 @@ contract VernamCrowdSale is Ownable {
 		    remainingAmountInWei = (weiAmount.add(totalContributedWei)).sub(currentLevelCap);
 		    currentAmountInWei = weiAmount.sub(remainingAmountInWei);
             amount = currentAmountInWei.mul(currentLevelPrice);
-            amount = amount.(remainingAmountInWei.mul(nextLevelPrice));
+            amount = amount.add(remainingAmountInWei.mul(nextLevelPrice));
 	    } else {
 	        amount = weiAmount.mul(currentLevelPrice);
 	    }
@@ -236,4 +235,42 @@ contract VernamCrowdSale is Ownable {
 			OrdersDetail[_participant].thirdStageWEI = OrdersDetail[_participant].thirdStageWEI.add(_weiAmount);
 			OrdersDetail[_participant].thirdStageTokens = OrdersDetail[_participant].thirdStageTokens.add(_tokens);
 		}
-	} 
+	}
+	
+	// If softcap is not reached the contributors can withdraw their ethers 
+	function safeWithdraw() public {
+        refund(msg.sender);
+    }
+    
+    function refund(address _participant) internal {
+        uint amountInWei = calculateContributedAmountInWei(_participant);
+        
+        require(amountInWei > 0);
+        
+        resumeContributedAmountInWei(_participant);
+        
+        _participant.transfer(amountInWei);
+        
+        emit Refunded(_participant, amountInWei);
+    }
+    
+    function calculateContributedAmountInWei(address _participant) internal returns (uint _amountInWei) {
+        _amountInWei = _amountInWei.add(OrdersDetail[_participant].privatePresaleWEI);
+        _amountInWei = _amountInWei.add(OrdersDetail[_participant].threeHotHoursWEI);
+        _amountInWei = _amountInWei.add(OrdersDetail[_participant].firstStageWEI);
+        _amountInWei = _amountInWei.add(OrdersDetail[_participant].secondStageWEI);
+        _amountInWei = _amountInWei.add(OrdersDetail[_participant].thirdStageWithDiscountWEI);
+        _amountInWei = _amountInWei.add(OrdersDetail[_participant].thirdStageWEI);
+        
+        return _amountInWei;
+    }
+    
+    function resumeContributedAmountInWei(address _participant) internal {
+        OrdersDetail[_participant].privatePresaleWEI = 0;
+        OrdersDetail[_participant].threeHotHoursWEI = 0;
+        OrdersDetail[_participant].firstStageWEI = 0;
+        OrdersDetail[_participant].secondStageWEI = 0;
+        OrdersDetail[_participant].thirdStageWithDiscountWEI = 0;
+        OrdersDetail[_participant].thirdStageWEI = 0;
+    }
+}
