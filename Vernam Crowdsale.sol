@@ -273,44 +273,39 @@ contract VernamCrowdSale is Ownable {
 		
 		require(_balanceAtTHH > 0);
 		
-        if(block.timestamp < startTHHTime + FIRST_MONTH && getTokens[msg.sender][startTHHTime + FIRST_MONTH] == false) {
+        if(block.timestamp < startTHHTime + FIRST_MONTH && percentage[msg.sender] < 10) {
             percentage[msg.sender] += 10;
-            getTokens[msg.sender][startTHHTime + FIRST_MONTH] = true;
             
             return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
         } 
         
-        if(block.timestamp < startTHHTime + SECOND_MONTH && getTokens[msg.sender][startTHHTime + SECOND_MONTH] == false) 
+        if(block.timestamp < startTHHTime + SECOND_MONTH && percentage[msg.sender] < 20) 
         {
-            percentage[msg.sender] = 20 - percentage[msg.sender];
-            getTokens[msg.sender][startTHHTime + SECOND_MONTH] = true;
+            percentage[msg.sender] += (20 - percentage[msg.sender]);
             
             return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
         } 
         
-        if(block.timestamp < startTHHTime + THIRD_MONTH && getTokens[msg.sender][startTHHTime + THIRD_MONTH] == false) {
-            percentage[msg.sender] = 30 - percentage[msg.sender];
-            getTokens[msg.sender][startTHHTime + THIRD_MONTH] = true;
+        if(block.timestamp < startTHHTime + THIRD_MONTH && percentage[msg.sender] < 30) {
+            percentage[msg.sender] += (30 - percentage[msg.sender]);
             
             return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
         } 
         
-        if(block.timestamp < startTHHTime + FOURTH_MONTH && getTokens[msg.sender][startTHHTime + FOURTH_MONTH] == false) {
-            percentage[msg.sender] = 50 - percentage[msg.sender];
-            getTokens[msg.sender][startTHHTime + FOURTH_MONTH] = true;
+        if(block.timestamp < startTHHTime + FOURTH_MONTH && percentage[msg.sender] < 50) {
+            percentage[msg.sender] += (50 - percentage[msg.sender]);
             
             return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
         } 
         
-        if(block.timestamp < startTHHTime + FIFTH_MONTH && getTokens[msg.sender][startTHHTime + FIFTH_MONTH] == false) {
-            percentage[msg.sender] = 70 - percentage[msg.sender];
-            getTokens[msg.sender][startTHHTime + FIFTH_MONTH] = true;
+        if(block.timestamp < startTHHTime + FIFTH_MONTH && percentage[msg.sender] < 70) {
+            percentage[msg.sender] += (70 - percentage[msg.sender]);
             
             return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
         } 
         
-        if(block.timestamp < startTHHTime + SIXTH_MONTH && getTokens[msg.sender][startTHHTime + FIFTH_MONTH] == false) {
-            getTokens[msg.sender][startTHHTime + SIXTH_MONTH] == true;
+        if(block.timestamp < startTHHTime + SIXTH_MONTH && percentage[msg.sender] < 100) {
+            percentage[msg.sender] = 100;
             
             return _balanceAtTHH;
         }
