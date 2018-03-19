@@ -32,7 +32,7 @@ library SafeMath {
 
 contract Ownable {
 	address public owner;
-
+	address public Controller;
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
 	function Ownable() public {
@@ -43,13 +43,22 @@ contract Ownable {
 		require(msg.sender == owner);
 		_;
 	}
+	
+	modifier onlyController() {
+		require(msg.sender == Controller);
+		_;
+	}
+
 
 	function transferOwnership(address newOwner) public onlyOwner {
 		require(newOwner != address(0));
 		emit OwnershipTransferred(owner, newOwner);
 		owner = newOwner;
 	}
-
+	
+	function setController(address _controllerAddress) public onlyOwner {
+		Controller = _controllerAddress;
+	}
 }
 
 contract VernamCrowdSale is Ownable {
@@ -57,12 +66,13 @@ contract VernamCrowdSale is Ownable {
 		
 	address public benecifiary;
 	
+	bool public isThreeHotHoursActive;
+	
 	uint public startTime;
 	uint public totalSoldTokens;
 	uint constant FIFTEEN_ETHERS = 15 ether;
 	uint constant minimumContribution = 100 finney;
 	uint public totalContributedWei;
-
 	
 	uint constant public privatePreSaleDuration = 3 hours;
 	uint constant public privatePreSalePriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
@@ -104,32 +114,15 @@ contract VernamCrowdSale is Ownable {
 	
 	uint constant public TokensHardCap = 500000000000000000000000000;  //500 000 000 with 18 decimals
 	
-	mapping(address => OrderDetail) public OrdersDetail;
-
+	mapping(address => uint256) public contributedInWei;
+	mapping(address => uint256) public boughtTokens;
+	
+	mapping(address => uint256) public threeHotHoursTokens;
 	// VernamCrowdsaleToken public VCT;
 	
 	// Events
 	event Refunded(address _participant, uint amountInWei);
 	
-	struct OrderDetail {
-		uint256 privatePresaleWEI;
-		uint256 privatePresaleTokens;
-
-		uint256 threeHotHoursWEI;
-		uint256 threeHotHoursTokens;
-
-		uint256 firstStageWEI;
-		uint256 firstStageTokens;
-
-		uint256 secondStageWEI;
-		uint256 secondStageTokens;
-
-		uint256 thirdStageWithDiscountWEI;
-		uint256 thirdStageWithDiscountTokens;
-
-		uint256 thirdStageWEI;
-		uint256 thirdStageTokens;
-	}
 
 
 	function VernamCrowdSale() public {
@@ -138,9 +131,10 @@ contract VernamCrowdSale is Ownable {
 	}
 	
 	function activateCrowdSale() public onlyOwner {
+	    isThreeHotHoursActive = true;
 		startTime = block.timestamp;
-		privatePreSaleEnd = startTime.add(privatePreSaleDuration);
-		threeHotHoursEnd = privatePreSaleEnd.add(threeHotHoursDuration);
+		// privatePreSaleEnd = startTime.add(privatePreSaleDuration);
+		threeHotHoursEnd = startTime.add(threeHotHoursDuration);
 		firstStageEnd = threeHotHoursEnd.add(firstStageDuration);
 		secondStageEnd = firstStageEnd.add(secondStageDuration);
 		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
@@ -151,20 +145,35 @@ contract VernamCrowdSale is Ownable {
 	}
 	
 	function buyTokens(address _participant, uint256 _weiAmount) public payable returns(bool) {
-		//require(_weiAmount >= minimumContribution); // if value is smaller than most expensive stage price will count 0 tokens 
-		//uint256 tokens = calculateAndCreateTokens(_weiAmount);
-		//require(totalSoldTokens.add(tokens) <= TokensHardCap);
-		// writeOrder(_participant, _weiAmount, tokens);
+		require(_weiAmount >= minimumContribution); // if value is smaller than most expensive stage price will count 0 tokens 
+		
+		uint256 currentLevelTokens;
+		uint256 nextLevelTokens;
+		(currentLevelTokens, nextLevelTokens) = calculateAndCreateTokens(_weiAmount);
+		
+		require(totalSoldTokens.add(currentLevelTokens.add(nextLevelTokens)) <= TokensHardCap);
+		// transfer ethers here
 		//VCT.mintToken(_participant, tokens);        
-		//totalSoldTokens = totalSoldTokens.add(tokens);
-		//totalContributedWei = totalContributedWei.add(_weiAmount);
-		//return true;
+		
+		contributedInWei[_participant] = contributedInWei[_participant].add(_weiAmount);
+		
+		if(isThreeHotHoursActive == true) {
+			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
+			boughtTokens[_participant] = boughtTokens[_participant].add(nextLevelTokens);
+		} else {	
+			boughtTokens[_participant] = boughtTokens[_participant].add(currentLevelTokens.add(nextLevelTokens));
+		}
+		
+		totalSoldTokens = totalSoldTokens.add(currentLevelTokens.add(nextLevelTokens));
+		totalContributedWei = totalContributedWei.add(_weiAmount);
+		
+		return true;
 		
 		//Event
 
 	}
 	
-	function calculateAndCreateTokens(uint256 weiAmount) public returns (uint256 _tokensAmount) {
+	function calculateAndCreateTokens(uint256 weiAmount) public returns (uint256 _tokensCurrentAmount, uint256 _tokensNextAmount) {
 		
 		// The private presale operations must be in another functions 
 		/*if(block.timestamp < privatePreSaleEnd && totalSoldTokens < privatePreSaleTokens){
@@ -173,104 +182,58 @@ contract VernamCrowdSale is Ownable {
 		
 		// Safe math will be used 
 		if(block.timestamp < threeHotHoursEnd && totalSoldTokens < threeHotHoursTokensCap) {
-		    _tokensAmount = tokensCalculator(weiAmount, threeHotHoursPriceOfTokenInWei, firstStagePriceOfTokenInWei, threeHotHoursCapInWei);
-			return _tokensAmount;
+		    (_tokensCurrentAmount, _tokensNextAmount) = tokensCalculator(weiAmount, threeHotHoursPriceOfTokenInWei, firstStagePriceOfTokenInWei, threeHotHoursCapInWei);
+			
+			return (_tokensCurrentAmount, _tokensNextAmount);
 		}
 		
-		if(block.timestamp < firstStageEnd && totalSoldTokens < firstStageTokensCap) {
-		    _tokensAmount = tokensCalculator(weiAmount, firstStagePriceOfTokenInWei, secondStagePriceOfTokenInWei, firstStageCapInWei);
-			return _tokensAmount;
+		if(block.timestamp < firstStageEnd || totalSoldTokens < firstStageTokensCap) {
+		    (_tokensCurrentAmount, _tokensNextAmount) = tokensCalculator(weiAmount, firstStagePriceOfTokenInWei, secondStagePriceOfTokenInWei, firstStageCapInWei);
+			isThreeHotHoursActive = false;
+			return (_tokensCurrentAmount, _tokensNextAmount);
 		}
 		
-		if(block.timestamp < secondStageEnd && totalSoldTokens < secondStageTokensCap) {
-			_tokensAmount = tokensCalculator(weiAmount, secondStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, secondStageCapInWei);
-			return _tokensAmount;
+		if(block.timestamp < secondStageEnd || totalSoldTokens < secondStageTokensCap) {
+			(_tokensCurrentAmount, _tokensNextAmount) = tokensCalculator(weiAmount, secondStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, secondStageCapInWei);
+			return (_tokensCurrentAmount, _tokensNextAmount);
 		}
 		
-		if(block.timestamp < thirdStageEnd && totalSoldTokens < thirdStageTokens && weiAmount > FIFTEEN_ETHERS) {
-			_tokensAmount = tokensCalculator(weiAmount, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountCapInWei);
-			return _tokensAmount;
+		if(block.timestamp < thirdStageEnd || totalSoldTokens < thirdStageTokens && weiAmount > FIFTEEN_ETHERS) {
+			(_tokensCurrentAmount, _tokensNextAmount) = tokensCalculator(weiAmount, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountCapInWei);
+			return (_tokensCurrentAmount, _tokensNextAmount);
 		}
 		
-		if(block.timestamp < thirdStageEnd && totalSoldTokens < thirdStageTokens){
-			_tokensAmount = tokensCalculator(weiAmount, thirdStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, thirdStageCapInWei);
-			return _tokensAmount;
+		if(block.timestamp < thirdStageEnd || totalSoldTokens < thirdStageTokens){
+			(_tokensCurrentAmount, _tokensNextAmount) = tokensCalculator(weiAmount, thirdStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, thirdStageCapInWei);
+			return (_tokensCurrentAmount, _tokensNextAmount);
 		}
 		
 		revert();
 	}
 	
-	function tokensCalculator(uint256 weiAmount, uint256 currentLevelPrice, uint256 nextLevelPrice, uint256 currentLevelCap) internal returns (uint256 _tokens){
+	function tokensCalculator(uint256 weiAmount, uint256 currentLevelPrice, uint256 nextLevelPrice, uint256 currentLevelCap) internal returns (uint256, uint256){
 	    uint currentAmountInWei = 0;
 		uint remainingAmountInWei = 0;
-		uint amount = 0; 
+		uint currentAmount = 0;
+		uint nextAmount = 0;
+		
 		if(weiAmount.add(totalContributedWei) > currentLevelCap) {
 		    remainingAmountInWei = (weiAmount.add(totalContributedWei)).sub(currentLevelCap);
 		    currentAmountInWei = weiAmount.sub(remainingAmountInWei);
-            amount = currentAmountInWei.mul(currentLevelPrice);
-            amount = amount.add(remainingAmountInWei.mul(nextLevelPrice));
+            currentAmount = currentAmountInWei.div(currentLevelPrice);
+            nextAmount = remainingAmountInWei.div(nextLevelPrice);
 	    } else {
-	        amount = weiAmount.mul(currentLevelPrice);
+	        currentAmount = weiAmount.div(currentLevelPrice);
+			nextAmount = 0;
 	    }
-		return amount;
-	}
-    
-	function writeOrder(address _participant, uint256 _weiAmount, uint _tokens) internal {
-		if(_price == privatePreSaleCapInWei) {
-			OrdersDetail[_participant].privatePresaleWEI = OrdersDetail[_participant].privatePresaleWEI.add(_weiAmount);
-			OrdersDetail[_participant].privatePresaleTokens = OrdersDetail[_participant].privatePresaleTokens.add(_tokens);
-		}else if (_price == totalContributedWei) {
-			OrdersDetail[_participant].threeHotHoursWEI = OrdersDetail[_participant].threeHotHoursWEI.add(_weiAmount);
-			OrdersDetail[_participant].threeHotHoursTokens = OrdersDetail[_participant].threeHotHoursTokens.add(_tokens);
-		}else if (_price == firstStageCapInWei) {
-			OrdersDetail[_participant].firstStageWEI = OrdersDetail[_participant].firstStageWEI.add(_weiAmount);
-			OrdersDetail[_participant].firstStageTokens = OrdersDetail[_participant].firstStageTokens.add(_tokens);
-		}else if (_price == secondStageCapInWei) {
-			OrdersDetail[_participant].secondStageWEI = OrdersDetail[_participant].secondStageWEI.add(_weiAmount);
-			OrdersDetail[_participant].secondStageTokens = OrdersDetail[_participant].secondStageTokens.add(_tokens);
-		}else if (_price == thirdStageDiscountCapInWei) {
-			OrdersDetail[_participant].thirdStageWithDiscountWEI = OrdersDetail[_participant].thirdStageWithDiscountWEI.add(_weiAmount);
-			OrdersDetail[_participant].thirdStageWithDiscountTokens = OrdersDetail[_participant].thirdStageWithDiscountTokens.add(_tokens);
-		}else {
-			OrdersDetail[_participant].thirdStageWEI = OrdersDetail[_participant].thirdStageWEI.add(_weiAmount);
-			OrdersDetail[_participant].thirdStageTokens = OrdersDetail[_participant].thirdStageTokens.add(_tokens);
-		}
+
+		return (currentAmount, nextAmount);
 	}
 	
-	// If softcap is not reached the contributors can withdraw their ethers 
-	function safeWithdraw() public {
-        refund(msg.sender);
-    }
+	function realaseThreeHotHour(address _participant, uint256 _amount) public onlyController returns(bool) {
+		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
+		boughtTokens[_participant] = boughtTokens[_participant].add(_amount);
+		return true;
+	}
     
-    function refund(address _participant) internal {
-        uint amountInWei = calculateContributedAmountInWei(_participant);
-        
-        require(amountInWei > 0);
-        
-        resumeContributedAmountInWei(_participant);
-        
-        _participant.transfer(amountInWei);
-        
-        emit Refunded(_participant, amountInWei);
-    }
-    
-    function calculateContributedAmountInWei(address _participant) internal returns (uint _amountInWei) {
-        _amountInWei = _amountInWei.add(OrdersDetail[_participant].privatePresaleWEI);
-        _amountInWei = _amountInWei.add(OrdersDetail[_participant].threeHotHoursWEI);
-        _amountInWei = _amountInWei.add(OrdersDetail[_participant].firstStageWEI);
-        _amountInWei = _amountInWei.add(OrdersDetail[_participant].secondStageWEI);
-        _amountInWei = _amountInWei.add(OrdersDetail[_participant].thirdStageWithDiscountWEI);
-        _amountInWei = _amountInWei.add(OrdersDetail[_participant].thirdStageWEI);
-        
-        return _amountInWei;
-    }
-    
-    function resumeContributedAmountInWei(address _participant) internal {
-        OrdersDetail[_participant].privatePresaleWEI = 0;
-        OrdersDetail[_participant].threeHotHoursWEI = 0;
-        OrdersDetail[_participant].firstStageWEI = 0;
-        OrdersDetail[_participant].secondStageWEI = 0;
-        OrdersDetail[_participant].thirdStageWithDiscountWEI = 0;
-        OrdersDetail[_participant].thirdStageWEI = 0;
-    }
 }
