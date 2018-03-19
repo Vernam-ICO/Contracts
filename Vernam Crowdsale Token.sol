@@ -42,6 +42,7 @@ contract Ownable {
 	address public owner1;
 
 	address public minter;
+	address public burner;
 
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
@@ -60,6 +61,11 @@ contract Ownable {
 		require(msg.sender == minter);
 		_;
 	}
+	
+	modifier onlyBurner() {
+		require(msg.sender == burner);
+		_;
+	}
   
 	modifier onlyPayloadSize(uint256 numwords) {                                       
 		assert(msg.data.length == numwords * 32 + 4);
@@ -74,6 +80,10 @@ contract Ownable {
 	
 	function setMinter(address _minterAddress) public onlyOwner {
 		minter = _minterAddress;
+	}
+	
+	function setBurner(address _burnerAddress) public onlyOwner {
+		burner = _burnerAddress;
 	}
 }
 /*
@@ -122,7 +132,7 @@ contract VernamCrowdSaleToken is Ownable,CrowdsaleVernam {
 	/* Initializes contract with initial supply tokens to the creator of the contract */
 	function VernamCrowdSaleToken() public {
 		name = "Vernam Crowdsale Token";                                   	// Set the name for display purposes
-		symbol = "VRNC";                               				// Set the symbol for display purposes
+		symbol = "VCT";                               				// Set the symbol for display purposes
 		decimals = 18;                            					// Amount of decimals for display purposes
 		_totalSupply = SafeMath.mul(1000000000,POW);     //1 BLN TOKENS WITH 18 Decimals 					// Update total supply
 		_circulatingSupply = 0;
@@ -142,11 +152,12 @@ contract VernamCrowdSaleToken is Ownable,CrowdsaleVernam {
 		return true;
     }
 	
-	function burn(address _participant, uint256 _value) public onlyMinter returns (bool _success) {
+	function burn(address _participant, uint256 _value) public onlyBurner returns (bool _success) {
         require(balances[_participant] >= _value);   							// Check if the sender has enough
         balances[_participant] = balances[_participant].sub(_value);              // Subtract from the sender
 		_circulatingSupply = _circulatingSupply.sub(_value);
         _totalSupply = _totalSupply.sub(_value);                      							// Updates totalSupply
+		emit Transfer(_participant, 0, _value);
         emit Burn(_participant, _value);
         return true;
     }
