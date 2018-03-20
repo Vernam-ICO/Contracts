@@ -129,9 +129,9 @@ contract VernamCrowdSale is Ownable {
 	mapping(address => uint) public contributedInWei;
 	mapping(address => uint) public boughtTokens;
 	mapping(address => uint) public threeHotHoursTokens;
-	mapping(address => uint) public threeHotHoursTokensMaxBalance;
-	mapping(address => uint) percentage;
-	mapping(address => mapping(uint => bool)) getTokens;
+	// mapping(address => uint) public threeHotHoursTokensMaxBalance;
+	// mapping(address => uint) percentage;
+	
 	
 	// VernamCrowdsaleToken public vernamCrowdsaleToken;
     
@@ -193,7 +193,7 @@ contract VernamCrowdSale is Ownable {
 		contributedInWei[_participant] = contributedInWei[_participant].add(_weiAmount);
 		
 		if(isThreeHotHoursActive == true) {
-		    threeHotHoursTokensMaxBalance[_participant] = threeHotHoursTokensMaxBalance[_participant].add(currentLevelTokens);
+		    // threeHotHoursTokensMaxBalance[_participant] = threeHotHoursTokensMaxBalance[_participant].add(currentLevelTokens);
 			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
 			boughtTokens[_participant] = boughtTokens[_participant].add(nextLevelTokens);
 			whenBought[_participant] = block.timestamp;
@@ -273,8 +273,16 @@ contract VernamCrowdSale is Ownable {
 		return (currentAmount, nextAmount);
 	}
 	
+	mapping(address => mapping(uint => uint)) getTokensBalance;
+	mapping(address => mapping(uint => bool)) isTokensTaken;
+	mapping(address => bool) isCalculated;
 	function realaseThreeHotHour(address _participant) public onlyController returns(bool) {
 		uint _amount = unlockTokensAmount(_participant);
+		
+		if(isCalculated[_participant] == false) {
+		    calculateTokensForMonth(_participant);
+		    isCalculated[_participant] = true;
+		}
 		
 		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
 		boughtTokens[_participant] = boughtTokens[_participant].add(_amount);
@@ -282,47 +290,75 @@ contract VernamCrowdSale is Ownable {
 		return true;
 	}
 	
+	function calculateTokensForMonth(address _participant) {
+	    uint maxBalance = threeHotHoursTokens[_participant];
+	    uint percentage = 10;
+	    for(uint month = 0; month < 6; month++) {
+	        if(month == 3 || month == 5) {
+	            percentage += 10;
+	        }
+	        getTokensBalance[_participant][month] = maxBalance / percentage;
+	        isTokensTaken[_participant][month] = false; // This is not needed we can check if there is balance in getTokensBalance when unlock tokens 
+	    }
+	}
+	
 	function unlockTokensAmount(address _participant) internal returns (uint) {
         uint startTHHTime = whenBought[_participant];
-        uint _balanceAtTHH = threeHotHoursTokensMaxBalance[_participant];
 		
-		require(_balanceAtTHH > 0);
+		require(threeHotHoursTokens[_participant] > 0);
 		
-        if(block.timestamp < startTHHTime + FIRST_MONTH && percentage[msg.sender] < 10) {
-            percentage[msg.sender] += 10;
+        if(block.timestamp < startTHHTime + FIRST_MONTH && isTokensTaken[_participant][0] == false) {
+            isTokensTaken[_participant][0] == true;
             
-            return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
+            return getTokens(_participant, 1); // First month
         } 
         
-        if(((block.timestamp >= startTHHTime + FIRST_MONTH) && (block.timestamp < startTHHTime + SECOND_MONTH)) && percentage[msg.sender] < 20) 
+        if(((block.timestamp >= startTHHTime + FIRST_MONTH) && (block.timestamp < startTHHTime + SECOND_MONTH)) 
+            && isTokensTaken[_participant][1] == false) 
         {
-            percentage[msg.sender] += (20 - percentage[msg.sender]);
+            isTokensTaken[_participant][1] == true;
             
-            return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
+            return getTokens(_participant, 2); // Second month
         } 
         
-        if(((block.timestamp >= startTHHTime + SECOND_MONTH) && (block.timestamp < startTHHTime + THIRD_MONTH)) && percentage[msg.sender] < 30) {
-            percentage[msg.sender] += (30 - percentage[msg.sender]);
+        if(((block.timestamp >= startTHHTime + SECOND_MONTH) && (block.timestamp < startTHHTime + THIRD_MONTH)) 
+            && isTokensTaken[_participant][2] == false) {
+            isTokensTaken[_participant][2] == true;
             
-            return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
+            return getTokens(_participant, 3); // Third month
         } 
         
-        if(((block.timestamp >= startTHHTime + THIRD_MONTH) && (block.timestamp < startTHHTime + FOURTH_MONTH)) && percentage[msg.sender] < 50) {
-            percentage[msg.sender] += (50 - percentage[msg.sender]);
+        if(((block.timestamp >= startTHHTime + THIRD_MONTH) && (block.timestamp < startTHHTime + FOURTH_MONTH)) 
+            && isTokensTaken[_participant][3] == false) {
+            isTokensTaken[_participant][3] == true;
             
-            return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
+            return getTokens(_participant, 4); // Forth month
         } 
         
-        if(((block.timestamp >= startTHHTime + FOURTH_MONTH) && (block.timestamp < startTHHTime + FIFTH_MONTH)) && percentage[msg.sender] < 70) {
-            percentage[msg.sender] += (70 - percentage[msg.sender]);
+        if(((block.timestamp >= startTHHTime + FOURTH_MONTH) && (block.timestamp < startTHHTime + FIFTH_MONTH)) 
+            && isTokensTaken[_participant][4] == false) {
+            isTokensTaken[_participant][4] == true;
             
-            return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
+            return getTokens(_participant, 5); // Fifth month
         } 
         
-        if((block.timestamp >= startTHHTime + FIFTH_MONTH) && percentage[msg.sender] < 100) {
-            percentage[msg.sender] = 100;
+        if((block.timestamp >= startTHHTime + FIFTH_MONTH) 
+            && isTokensTaken[_participant][5] == false) {
+            isTokensTaken[_participant][5] == true;
             
-            return _balanceAtTHH;
+            return getTokens(_participant, 6); // Last month
+        }
+    }
+    
+    function getTokens(address _participant, uint _period) internal returns(uint) {
+        uint tokens = 0;
+        for(uint month = 0; month < _period; month++) {
+            if(isTokensTaken[_participant][month] == false) {
+                tokens += getTokensBalance[_participant][month];
+                getTokensBalance[_participant][month] = 0;
+            }
+            
+            return tokens;
         }
     }
 	
