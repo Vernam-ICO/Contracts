@@ -38,22 +38,22 @@ contract CrowdsaleVernam {
 }
 
 contract Ownable {
-	address public owner;
-	address public owner1;
+	address public firstOwner;
+	address public secondOwner;
 
 	address public minter;
 	address public burner;
 
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-	function Ownable(address _owner1) public {
-		require(_owner1 != msg.sender && _owner1 != address(0));
-		owner = msg.sender;
-		owner1 = _owner1;
+	function Ownable(address _secondOwner) public {
+		require(_secondOwner != msg.sender && _secondOwner != address(0));
+		firstOwner = msg.sender;
+		secondOwner = _secondOwner;
 	}
 
 	modifier onlyOwner() {
-		require(msg.sender == owner || msg.sender == owner1);
+		require(msg.sender == firstOwner || msg.sender == secondOwner);
 		_;
 	}
 	
@@ -74,8 +74,8 @@ contract Ownable {
 
 	function transferOwnership(address newOwner) public onlyOwner {
 		require(newOwner != address(0));
-		OwnershipTransferred(owner, newOwner);
-		owner = newOwner;
+		OwnershipTransferred(firstOwner, newOwner);
+		firstOwner = newOwner;
 	}
 	
 	function setMinter(address _minterAddress) public onlyOwner {
@@ -127,39 +127,43 @@ contract VernamCrowdSaleToken is Ownable,CrowdsaleVernam {
 		
 	// This notifies clients about the amount burnt
 	event Burn(address indexed from, uint256 value);
-
+	event Mint(address indexed _participant, uint256 value);
 
 	/* Initializes contract with initial supply tokens to the creator of the contract */
 	function VernamCrowdSaleToken() public {
-		name = "Vernam Crowdsale Token";                                   	// Set the name for display purposes
+		name = "Vernam Crowdsale Token";                            // Set the name for display purposes
 		symbol = "VCT";                               				// Set the symbol for display purposes
 		decimals = 18;                            					// Amount of decimals for display purposes
-		_totalSupply = SafeMath.mul(1000000000,POW);     //1 BLN TOKENS WITH 18 Decimals 					// Update total supply
+		_totalSupply = SafeMath.mul(1000000000, POW);     			//1 Billion Tokens with 18 Decimals
 		_circulatingSupply = 0;
 	}
-
-	event Mint(address indexed _participant, uint256 value);
+	
 	function mintToken(address _participant, uint256 _mintedAmount) public onlyMinter returns (bool _success) {
 		require(_mintedAmount > 0);
 		require(_circulatingSupply.add(_mintedAmount) <= _totalSupply);
 		
         balances[_participant] =  balances[_participant].add(_mintedAmount);
         _circulatingSupply = _circulatingSupply.add(_mintedAmount);
+		
 		emit Transfer(0, this, _mintedAmount);
         emit Transfer(this, _participant, _mintedAmount);
-		
 		emit Mint(_participant, _mintedAmount);
+		
 		return true;
     }
 	
 	function burn(address _participant, uint256 _value) public onlyBurner returns (bool _success) {
-        require(balances[_participant] >= _value);   							// Check if the sender has enough
-        balances[_participant] = balances[_participant].sub(_value);              // Subtract from the sender
+        require(_value > 0);
+		require(balances[_participant] >= _value);   							// Check if the sender has enough
+        
+		balances[_participant] = balances[_participant].sub(_value);            // Subtract from the sender
 		_circulatingSupply = _circulatingSupply.sub(_value);
-        _totalSupply = _totalSupply.sub(_value);                      							// Updates totalSupply
+        _totalSupply = _totalSupply.sub(_value);                      			// Updates totalSupply
+		
 		emit Transfer(_participant, 0, _value);
         emit Burn(_participant, _value);
-        return true;
+        
+		return true;
     }
   
 	function totalSupply() public view returns (uint256) {
@@ -173,5 +177,4 @@ contract VernamCrowdSaleToken is Ownable,CrowdsaleVernam {
 	function balanceOf(address _owner) public view returns (uint256 balance) {
 		return balances[_owner];
 	}
-
 }
