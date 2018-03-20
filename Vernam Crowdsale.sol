@@ -32,9 +32,10 @@ library SafeMath {
 
 contract Ownable {
 	address public owner;
-	address public Controller;
+	address public controller;
+	
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
+    
 	function Ownable() public {
 		owner = msg.sender;
 	}
@@ -45,10 +46,9 @@ contract Ownable {
 	}
 	
 	modifier onlyController() {
-		require(msg.sender == Controller);
+		require(msg.sender == controller);
 		_;
 	}
-
 
 	function transferOwnership(address newOwner) public onlyOwner {
 		require(newOwner != address(0));
@@ -57,7 +57,7 @@ contract Ownable {
 	}
 	
 	function setController(address _controllerAddress) public onlyOwner {
-		Controller = _controllerAddress;
+		controller = _controllerAddress;
 	}
 }
 
@@ -78,6 +78,7 @@ contract VernamCrowdSale is Ownable {
 	uint constant public privatePreSaleDuration = 3 hours;
 	uint constant public privatePreSalePriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
 	uint constant public privatePreSaleTokensCap = 100000; // 100 000 tokens
+	// uint constant public privatePreSaleCapInWei = privatePreSalePriceOfTokenInWei.mul(privatePreSaleTokensCap);
 	
 	uint public privatePreSaleEnd;
 
@@ -96,7 +97,7 @@ contract VernamCrowdSale is Ownable {
 	uint public firstStageEnd;
 	
 	uint constant public secondStageDuration = 6 days;
-	uint constant public secondStagePriceOfTokenInWei = 400000000000000 wei; //1 eth == 2500
+	uint constant public secondStagePriceOfTokenInWei = 400000000000000 wei;    //1 eth == 2500
 	uint constant public secondStageTokensCap = 100000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
     uint constant public secondStageCapInWei = secondStagePriceOfTokenInWei.mul(secondStageTokensCap);
     
@@ -124,26 +125,34 @@ contract VernamCrowdSale is Ownable {
 	uint constant public FIFTH_MONTH = LOCK_TOKENS_DURATION + FOURTH_MONTH;
 	uint constant public SIXTH_MONTH = LOCK_TOKENS_DURATION + FIFTH_MONTH;
 	
-	mapping(address => uint256) whenBought;
+	mapping(address => uint) whenBought;
+	mapping(address => uint) public contributedInWei;
+	mapping(address => uint) public boughtTokens;
+	mapping(address => uint) public threeHotHoursTokens;
+	mapping(address => uint) percentage;
+	mapping(address => mapping(uint => bool)) getTokens;
 	
-	mapping(address => uint256) public contributedInWei;
-	mapping(address => uint256) public boughtTokens;
-	
-	mapping(address => uint256) public threeHotHoursTokens;
-	// VernamCrowdsaleToken public VCT;
-
-
+	// VernamCrowdsaleToken public vernamCrowdsaleToken;
+    
+    // Events
+    event PrivatePreSaleActivated(uint startTime, uint endTime);
+    event CrowdsaleActivated(uint startTime, uint endTime);
+    event TokensBought(address participant, uint weiAmount, uint tokensAmount);
+    
 	function VernamCrowdSale() public {
 		benecifiary = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
-		// VCT = VernamCrowdsaleToken(address);
+		// vernamCrowdsaleToken = VernamCrowdsaleToken(vernamCrowdsaleTokenAddress);
 		
 		startTime = block.timestamp;
 		privatePreSaleEnd = startTime.add(privatePreSaleDuration);
 		isInPrivatePreSale = true;
+		
+		emit PrivatePreSaleActivated(startTime, privatePreSaleEnd);
 	}
 	
 	function activateCrowdSale() public onlyOwner {
 		require(isInPrivatePreSale = true);
+	    
 	    isThreeHotHoursActive = true;
 		startTime = block.timestamp;
 		// privatePreSaleEnd = startTime.add(privatePreSaleDuration);
@@ -151,13 +160,17 @@ contract VernamCrowdSale is Ownable {
 		firstStageEnd = threeHotHoursEnd.add(firstStageDuration);
 		secondStageEnd = firstStageEnd.add(secondStageDuration);
 		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
+	
+	    isInPrivatePreSale = false;
+	    
+	    emit CrowdsaleActivated(startTime, thirdStageEnd);
 	}
 	
 	function() public payable {
 		buyTokens(msg.sender,msg.value);
 	}
 	
-	function buyTokens(address _participant, uint256 _weiAmount) public payable returns(bool) {
+	function buyTokens(address _participant, uint _weiAmount) public payable returns(bool) {
 		require(_weiAmount >= minimumContribution); // if value is smaller than most expensive stage price will count 0 tokens 
 		
 		validatePurchase(_participant, _weiAmount);
@@ -167,13 +180,14 @@ contract VernamCrowdSale is Ownable {
 		    return true;
 		}
 		
-		uint256 currentLevelTokens;
-		uint256 nextLevelTokens;
+		uint currentLevelTokens;
+		uint nextLevelTokens;
 		(currentLevelTokens, nextLevelTokens) = calculateAndCreateTokens(_weiAmount);
 		
 		require(totalSoldTokens.add(currentLevelTokens.add(nextLevelTokens)) <= TokensHardCap);
+		
 		// transfer ethers here
-		//VCT.mintToken(_participant, tokens);        
+		//vernamCrowdsaleToken.mintToken(_participant, tokens);        
 		
 		contributedInWei[_participant] = contributedInWei[_participant].add(_weiAmount);
 		
@@ -188,12 +202,12 @@ contract VernamCrowdSale is Ownable {
 		totalSoldTokens = totalSoldTokens.add(currentLevelTokens.add(nextLevelTokens));
 		totalContributedWei = totalContributedWei.add(_weiAmount);
 		
-		//Event
+		emit TokensBought(_participant, _weiAmount, currentLevelTokens.add(nextLevelTokens));
 		
 		return true;
 	}
 	
-	function privatePresaleBuy(address _participant, uint256 _weiAmount) internal {
+	function privatePresaleBuy(address _participant, uint _weiAmount) internal {
 		require(isInPrivatePreSale == true);
 		require(totalSoldTokens < privatePreSaleTokensCap);
         require(block.timestamp < privatePreSaleEnd && totalSoldTokens < privatePreSaleTokensCap);
@@ -202,9 +216,11 @@ contract VernamCrowdSale is Ownable {
 		boughtTokens[_participant] = boughtTokens[_participant].add(tokens);
 		
 		totalSoldTokens = totalSoldTokens.add(tokens);
+		
+		emit TokensBought(_participant, _weiAmount, tokens);
 	}
 	
-	function calculateAndCreateTokens(uint256 weiAmount) public returns (uint256 _tokensCurrentAmount, uint256 _tokensNextAmount) {
+	function calculateAndCreateTokens(uint weiAmount) public returns (uint _tokensCurrentAmount, uint _tokensNextAmount) {
 
 		if(block.timestamp < threeHotHoursEnd && totalSoldTokens < threeHotHoursTokensCap) {
 		    (_tokensCurrentAmount, _tokensNextAmount) = tokensCalculator(weiAmount, threeHotHoursPriceOfTokenInWei, firstStagePriceOfTokenInWei, threeHotHoursCapInWei);
@@ -236,7 +252,7 @@ contract VernamCrowdSale is Ownable {
 		revert();
 	}
 	
-	function tokensCalculator(uint256 weiAmount, uint256 currentLevelPrice, uint256 nextLevelPrice, uint256 currentLevelCap) internal view returns (uint256, uint256){
+	function tokensCalculator(uint weiAmount, uint currentLevelPrice, uint nextLevelPrice, uint currentLevelCap) internal view returns (uint256, uint256){
 	    uint currentAmountInWei = 0;
 		uint remainingAmountInWei = 0;
 		uint currentAmount = 0;
@@ -255,11 +271,8 @@ contract VernamCrowdSale is Ownable {
 		return (currentAmount, nextAmount);
 	}
 	
-	mapping(address => uint256) percentage;
-	mapping(address => mapping(uint256 => bool)) getTokens;
-	
 	function realaseThreeHotHour(address _participant) public onlyController returns(bool) {
-		uint256 _amount = unlockTokensAmount(_participant);
+		uint _amount = unlockTokensAmount(_participant);
 		
 		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
 		boughtTokens[_participant] = boughtTokens[_participant].add(_amount);
@@ -311,7 +324,7 @@ contract VernamCrowdSale is Ownable {
         }
     }
 	
-	function validatePurchase(address _participant, uint256 _weiAmount) pure internal {
+	function validatePurchase(address _participant, uint _weiAmount) pure internal {
         require(_participant != address(0));
         require(_weiAmount != 0);
     }
