@@ -346,9 +346,9 @@ contract VernamCrowdSale is Ownable {
                 tokens += getTokensBalance[_participant][month];
                 getTokensBalance[_participant][month] = 0;
             }
-            
-            return tokens;
         }
+        
+        return tokens;
     }
 	
 	function validatePurchase(address _participant, uint _weiAmount) pure internal {
