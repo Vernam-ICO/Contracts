@@ -85,28 +85,28 @@ contract VernamCrowdSale is Ownable {
 	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
 	uint constant public threeHotHoursTokensCap = 100000; // 100 000 tokens
+	
 	uint public threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul(threeHotHoursTokensCap);
-
 	uint public threeHotHoursEnd;
 	
 	uint constant public firstStageDuration = 24 hours;
 	uint constant public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
 	uint constant public firstStageTokensCap = 100000; // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
+
     uint public firstStageCapInWei = firstStagePriceOfTokenInWei.mul(firstStageTokensCap);
-    
 	uint public firstStageEnd;
 	
 	uint constant public secondStageDuration = 6 days;
 	uint constant public secondStagePriceOfTokenInWei = 400000000000000 wei;    //1 eth == 2500
 	uint constant public secondStageTokensCap = 100000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
-    uint public secondStageCapInWei = secondStagePriceOfTokenInWei.mul(secondStageTokensCap);
     
+    uint public secondStageCapInWei = secondStagePriceOfTokenInWei.mul(secondStageTokensCap);
 	uint public secondStageEnd;
 	
 	uint constant public thirdStageDuration = 26 days;
 	uint constant public thirdStagePriceOfTokenInWei = 600000000000000 wei;          //1 eth == 1500
 	
-	uint constant public thirdStageDiscountPriceOfTokenInWei = 800000000000000 wei; //1 eth == 1250
+	uint constant public thirdStageDiscountPriceOfTokenInWei = 800000000000000 wei;  //1 eth == 1250
 	
 	uint constant public thirdStageTokens = 100000; // 100 000 tokens //maybe not constant because we must recalculate if previous have remainig
 	uint public thirdStageEnd;
@@ -131,7 +131,6 @@ contract VernamCrowdSale is Ownable {
 	mapping(address => uint) public threeHotHoursTokens;
 	// mapping(address => uint) public threeHotHoursTokensMaxBalance;
 	// mapping(address => uint) percentage;
-	
 	
 	// VernamCrowdsaleToken public vernamCrowdsaleToken;
     
@@ -308,44 +307,32 @@ contract VernamCrowdSale is Ownable {
 		require(threeHotHoursTokens[_participant] > 0);
 		
         if(block.timestamp < startTHHTime + FIRST_MONTH && isTokensTaken[_participant][0] == false) {
-            isTokensTaken[_participant][0] == true;
-            
             return getTokens(_participant, 1); // First month
         } 
         
         if(((block.timestamp >= startTHHTime + FIRST_MONTH) && (block.timestamp < startTHHTime + SECOND_MONTH)) 
             && isTokensTaken[_participant][1] == false) 
         {
-            isTokensTaken[_participant][1] == true;
-            
             return getTokens(_participant, 2); // Second month
         } 
         
         if(((block.timestamp >= startTHHTime + SECOND_MONTH) && (block.timestamp < startTHHTime + THIRD_MONTH)) 
             && isTokensTaken[_participant][2] == false) {
-            isTokensTaken[_participant][2] == true;
-            
             return getTokens(_participant, 3); // Third month
         } 
         
         if(((block.timestamp >= startTHHTime + THIRD_MONTH) && (block.timestamp < startTHHTime + FOURTH_MONTH)) 
             && isTokensTaken[_participant][3] == false) {
-            isTokensTaken[_participant][3] == true;
-            
             return getTokens(_participant, 4); // Forth month
         } 
         
         if(((block.timestamp >= startTHHTime + FOURTH_MONTH) && (block.timestamp < startTHHTime + FIFTH_MONTH)) 
             && isTokensTaken[_participant][4] == false) {
-            isTokensTaken[_participant][4] == true;
-            
             return getTokens(_participant, 5); // Fifth month
         } 
         
         if((block.timestamp >= startTHHTime + FIFTH_MONTH) 
             && isTokensTaken[_participant][5] == false) {
-            isTokensTaken[_participant][5] == true;
-            
             return getTokens(_participant, 6); // Last month
         }
     }
@@ -354,6 +341,8 @@ contract VernamCrowdSale is Ownable {
         uint tokens = 0;
         for(uint month = 0; month < _period; month++) {
             if(isTokensTaken[_participant][month] == false) {
+                isTokensTaken[_participant][month] == true;
+                
                 tokens += getTokensBalance[_participant][month];
                 getTokensBalance[_participant][month] = 0;
             }
