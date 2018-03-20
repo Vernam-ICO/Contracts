@@ -85,21 +85,21 @@ contract VernamCrowdSale is Ownable {
 	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
 	uint constant public threeHotHoursTokensCap = 100000; // 100 000 tokens
-	uint constant public threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul(threeHotHoursTokensCap);
+	uint public threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul(threeHotHoursTokensCap);
 
 	uint public threeHotHoursEnd;
 	
 	uint constant public firstStageDuration = 24 hours;
 	uint constant public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
 	uint constant public firstStageTokensCap = 100000; // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
-    uint constant public firstStageCapInWei = firstStagePriceOfTokenInWei.mul(firstStageTokensCap);
+    uint public firstStageCapInWei = firstStagePriceOfTokenInWei.mul(firstStageTokensCap);
     
 	uint public firstStageEnd;
 	
 	uint constant public secondStageDuration = 6 days;
 	uint constant public secondStagePriceOfTokenInWei = 400000000000000 wei;    //1 eth == 2500
 	uint constant public secondStageTokensCap = 100000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
-    uint constant public secondStageCapInWei = secondStagePriceOfTokenInWei.mul(secondStageTokensCap);
+    uint public secondStageCapInWei = secondStagePriceOfTokenInWei.mul(secondStageTokensCap);
     
 	uint public secondStageEnd;
 	
@@ -111,8 +111,8 @@ contract VernamCrowdSale is Ownable {
 	uint constant public thirdStageTokens = 100000; // 100 000 tokens //maybe not constant because we must recalculate if previous have remainig
 	uint public thirdStageEnd;
 	
-	uint constant public thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul(thirdStageTokens);
-	uint constant public thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul(thirdStageTokens);
+	uint public thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul(thirdStageTokens);
+	uint public thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul(thirdStageTokens);
 	
 	uint constant public TokensHardCap = 500000000000000000000000000;  //500 000 000 with 18 decimals
 	
@@ -123,12 +123,13 @@ contract VernamCrowdSale is Ownable {
 	uint constant public THIRD_MONTH = LOCK_TOKENS_DURATION + SECOND_MONTH;
 	uint constant public FOURTH_MONTH = LOCK_TOKENS_DURATION + THIRD_MONTH;
 	uint constant public FIFTH_MONTH = LOCK_TOKENS_DURATION + FOURTH_MONTH;
-	uint constant public SIXTH_MONTH = LOCK_TOKENS_DURATION + FIFTH_MONTH;
+	// uint constant public SIXTH_MONTH = LOCK_TOKENS_DURATION + FIFTH_MONTH;
 	
 	mapping(address => uint) whenBought;
 	mapping(address => uint) public contributedInWei;
 	mapping(address => uint) public boughtTokens;
 	mapping(address => uint) public threeHotHoursTokens;
+	mapping(address => uint) public threeHotHoursTokensMaxBalance;
 	mapping(address => uint) percentage;
 	mapping(address => mapping(uint => bool)) getTokens;
 	
@@ -192,6 +193,7 @@ contract VernamCrowdSale is Ownable {
 		contributedInWei[_participant] = contributedInWei[_participant].add(_weiAmount);
 		
 		if(isThreeHotHoursActive == true) {
+		    threeHotHoursTokensMaxBalance[_participant] = threeHotHoursTokensMaxBalance[_participant].add(currentLevelTokens);
 			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
 			boughtTokens[_participant] = boughtTokens[_participant].add(nextLevelTokens);
 			whenBought[_participant] = block.timestamp;
@@ -280,9 +282,9 @@ contract VernamCrowdSale is Ownable {
 		return true;
 	}
 	
-	function unlockTokensAmount(address _participant) internal view returns (uint) {
+	function unlockTokensAmount(address _participant) internal returns (uint) {
         uint startTHHTime = whenBought[_participant];
-        uint _balanceAtTHH = threeHotHoursTokens[_participant];
+        uint _balanceAtTHH = threeHotHoursTokensMaxBalance[_participant];
 		
 		require(_balanceAtTHH > 0);
 		
@@ -292,32 +294,32 @@ contract VernamCrowdSale is Ownable {
             return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
         } 
         
-        if(block.timestamp < startTHHTime + SECOND_MONTH && percentage[msg.sender] < 20) 
+        if(((block.timestamp >= startTHHTime + FIRST_MONTH) && (block.timestamp < startTHHTime + SECOND_MONTH)) && percentage[msg.sender] < 20) 
         {
             percentage[msg.sender] += (20 - percentage[msg.sender]);
             
             return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
         } 
         
-        if(block.timestamp < startTHHTime + THIRD_MONTH && percentage[msg.sender] < 30) {
+        if(((block.timestamp >= startTHHTime + SECOND_MONTH) && (block.timestamp < startTHHTime + THIRD_MONTH)) && percentage[msg.sender] < 30) {
             percentage[msg.sender] += (30 - percentage[msg.sender]);
             
             return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
         } 
         
-        if(block.timestamp < startTHHTime + FOURTH_MONTH && percentage[msg.sender] < 50) {
+        if(((block.timestamp >= startTHHTime + THIRD_MONTH) && (block.timestamp < startTHHTime + FOURTH_MONTH)) && percentage[msg.sender] < 50) {
             percentage[msg.sender] += (50 - percentage[msg.sender]);
             
             return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
         } 
         
-        if(block.timestamp < startTHHTime + FIFTH_MONTH && percentage[msg.sender] < 70) {
+        if(((block.timestamp >= startTHHTime + FOURTH_MONTH) && (block.timestamp < startTHHTime + FIFTH_MONTH)) && percentage[msg.sender] < 70) {
             percentage[msg.sender] += (70 - percentage[msg.sender]);
             
             return (_balanceAtTHH.mul(percentage[msg.sender])).div(100);
         } 
         
-        if(block.timestamp < startTHHTime + SIXTH_MONTH && percentage[msg.sender] < 100) {
+        if((block.timestamp >= startTHHTime + FIFTH_MONTH) && percentage[msg.sender] < 100) {
             percentage[msg.sender] = 100;
             
             return _balanceAtTHH;
