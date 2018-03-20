@@ -61,18 +61,13 @@ contract VernamToken is ERC20 {
 	/* This creates an array with all balances */
 	mapping (address => uint256) public balances;
     mapping (address => mapping (address => uint256)) internal allowed;
-		
-		event Transfer(address indexed from, address indexed to, uint256 value);
-	  // This notifies clients about the amount burnt
-		event Approval(address indexed owner, address indexed spender, uint256 value);
-
 
 	/* Initializes contract with initial supply tokens to the creator of the contract */
 	function VernamToken() public {
 		name = "Vernam Token";                                   	// Set the name for display purposes
 		symbol = "VRN";                               				// Set the symbol for display purposes
 		decimals = 18;                            					// Amount of decimals for display purposes
-		_totalSupply = SafeMath.mul(1000000000,POW);     //1 BLN TOKENS WITH 18 Decimals 					// Update total supply
+		_totalSupply = SafeMath.mul(1000000000,POW);     			//1 Billion Tokens with 18 Decimals
 		balances[msg.sender] = SafeMath.mul(1000000000,POW);
 	}
 
@@ -85,12 +80,12 @@ contract VernamToken is ERC20 {
         
 		_transfer(_from, _to, _value);
 		allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
+		
 		return true;
     }
 	
 	/* Internal transfer, only can be called by this contract */
 	function _transfer(address _from, address _to, uint256 _value) internal returns (bool _success) {
-		
 		require (_to != address(0x0));														// Prevent transfer to 0x0 address.
 		require(_value > 0);
 		require (balances[_from] >= _value);                								// Check if the sender has enough
@@ -101,34 +96,45 @@ contract VernamToken is ERC20 {
 		balances[_from] = balances[_from].sub(_value);        				   				// Subtract from the sender
 		balances[_to] = balances[_to].add(_value);                            				// Add the same to the recipient
 		
-		Transfer(_from, _to, _value);
+		emit Transfer(_from, _to, _value);
+		
 		// Asserts are used to use static analysis to find bugs in your code. They should never fail
         assert(balances[_from] + balances[_to] == previousBalances); //add safeMath
+		
 		return true;
 	}
 
 	function increaseApproval(address _spender, uint256 _addedValue) onlyPayloadSize(2) public returns (bool _success) {
 		require(allowed[msg.sender][_spender].add(_addedValue) <= balances[msg.sender]);
+		
 		allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
-		Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+		
+		emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+		
 		return true;
 	}
 
 	function decreaseApproval(address _spender, uint256 _subtractedValue) onlyPayloadSize(2) public returns (bool _success) {
 		uint256 oldValue = allowed[msg.sender][_spender];
+		
 		if (_subtractedValue > oldValue) {
 			allowed[msg.sender][_spender] = 0;
 		} else {
 			allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
 		}
-		Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+		
+		emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+		
 		return true;
 	}
 	
 	function approve(address _spender, uint256 _value) onlyPayloadSize(2) public returns (bool _success) {
 		require(_value <= balances[msg.sender]);
+		
 		allowed[msg.sender][_spender] = _value;
+		
 		Approval(msg.sender, _spender, _value);
+		
 		return true;
 	}
   
