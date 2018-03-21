@@ -73,9 +73,10 @@ contract VernamCrowdSale is Ownable {
 	uint public totalSoldTokens;
 	uint constant FIFTEEN_ETHERS = 15 ether;
 	uint constant minimumContribution = 100 finney;
+	uint constant maximumContribution = 500 ether;
 	uint public totalContributedWei;
 	
-	uint constant public privatePreSaleDuration = 3 hours;
+	uint constant public privatePreSaleDuration = 30 days;
 	uint constant public privatePreSalePriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
 	uint constant public privatePreSaleTokensCap = 100000; // 100 000 tokens
 	// uint constant public privatePreSaleCapInWei = privatePreSalePriceOfTokenInWei.mul(privatePreSaleTokensCap);
@@ -118,19 +119,15 @@ contract VernamCrowdSale is Ownable {
 	
 	// Constants for Realase Three Hot Hours
 	uint constant public LOCK_TOKENS_DURATION = 30 days;
-	uint constant public FIRST_MONTH = LOCK_TOKENS_DURATION;
-	uint constant public SECOND_MONTH = LOCK_TOKENS_DURATION + FIRST_MONTH;
-	uint constant public THIRD_MONTH = LOCK_TOKENS_DURATION + SECOND_MONTH;
-	uint constant public FOURTH_MONTH = LOCK_TOKENS_DURATION + THIRD_MONTH;
-	uint constant public FIFTH_MONTH = LOCK_TOKENS_DURATION + FOURTH_MONTH;
-	// uint constant public SIXTH_MONTH = LOCK_TOKENS_DURATION + FIFTH_MONTH;
-	
-	mapping(address => uint) whenBought;
+	uint public FIRST_MONTH_END ;
+	uint public SECOND_MONTH_END ;
+	uint public THIRD_MONTH_END ;
+	uint public FOURTH_MONTH_END ;
+	uint public FIFTH_MONTH_END ;
+
 	mapping(address => uint) public contributedInWei;
 	mapping(address => uint) public boughtTokens;
 	mapping(address => uint) public threeHotHoursTokens;
-	// mapping(address => uint) public threeHotHoursTokensMaxBalance;
-	// mapping(address => uint) percentage;
 	
 	// VernamCrowdsaleToken public vernamCrowdsaleToken;
     
@@ -150,20 +147,28 @@ contract VernamCrowdSale is Ownable {
 		emit PrivatePreSaleActivated(startTime, privatePreSaleEnd);
 	}
 	
+	
 	function activateCrowdSale() public onlyOwner {
-		require(isInPrivatePreSale = true);
-	    
+		require(isInPrivatePreSale == true);
 	    isThreeHotHoursActive = true;
 		startTime = block.timestamp;
-		// privatePreSaleEnd = startTime.add(privatePreSaleDuration);
 		threeHotHoursEnd = startTime.add(threeHotHoursDuration);
 		firstStageEnd = threeHotHoursEnd.add(firstStageDuration);
 		secondStageEnd = firstStageEnd.add(secondStageDuration);
 		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
 	
 	    isInPrivatePreSale = false;
-	    
+		timeLock();
+
 	    emit CrowdsaleActivated(startTime, thirdStageEnd);
+	}
+	
+	function timeLock() internal {
+		FIRST_MONTH_END = (startTime.add(LOCK_TOKENS_DURATION)).add(threeHotHoursDuration);
+		SECOND_MONTH_END = FIRST_MONTH_END.add(LOCK_TOKENS_DURATION);
+		THIRD_MONTH_END = SECOND_MONTH_END.add(LOCK_TOKENS_DURATION);
+		FOURTH_MONTH_END = THIRD_MONTH_END.add(LOCK_TOKENS_DURATION);
+		FIFTH_MONTH_END = FOURTH_MONTH_END.add(LOCK_TOKENS_DURATION);
 	}
 	
 	function() public payable {
@@ -172,10 +177,10 @@ contract VernamCrowdSale is Ownable {
 	
 	function buyTokens(address _participant, uint _weiAmount) public payable returns(bool) {
 		require(_weiAmount >= minimumContribution); // if value is smaller than most expensive stage price will count 0 tokens 
-		
+		require(_weiAmount <= maximumContribution);
 		validatePurchase(_participant, _weiAmount);
 		
-		if (isInPrivatePreSale = true) {
+		if (isInPrivatePreSale == true) {
 		    privatePresaleBuy(_participant, _weiAmount);  
 		    return true;
 		}
@@ -192,15 +197,14 @@ contract VernamCrowdSale is Ownable {
 		contributedInWei[_participant] = contributedInWei[_participant].add(_weiAmount);
 		
 		if(isThreeHotHoursActive == true) {
-		    // threeHotHoursTokensMaxBalance[_participant] = threeHotHoursTokensMaxBalance[_participant].add(currentLevelTokens);
 			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
 			boughtTokens[_participant] = boughtTokens[_participant].add(nextLevelTokens);
-			whenBought[_participant] = block.timestamp;
+			isCalculated[_participant] = false;
 		} else {	
 			boughtTokens[_participant] = boughtTokens[_participant].add(currentLevelTokens.add(nextLevelTokens));
 		}
 		
-		totalSoldTokens = totalSoldTokens.add(currentLevelTokens.add(nextLevelTokens));
+		totalSoldTokens = totalSoldTokens.add((currentLevelTokens).add(nextLevelTokens));
 		totalContributedWei = totalContributedWei.add(_weiAmount);
 		
 		emit TokensBought(_participant, _weiAmount, currentLevelTokens.add(nextLevelTokens));
@@ -211,7 +215,7 @@ contract VernamCrowdSale is Ownable {
 	function privatePresaleBuy(address _participant, uint _weiAmount) internal {
 		require(isInPrivatePreSale == true);
 		require(totalSoldTokens < privatePreSaleTokensCap);
-        require(block.timestamp < privatePreSaleEnd && totalSoldTokens < privatePreSaleTokensCap);
+        require(block.timestamp <= privatePreSaleEnd);
         
 		uint tokens = _weiAmount.div(privatePreSalePriceOfTokenInWei);
 		boughtTokens[_participant] = boughtTokens[_participant].add(tokens);
@@ -262,20 +266,20 @@ contract VernamCrowdSale is Ownable {
 		if(weiAmount.add(totalContributedWei) > currentLevelCap) {
 		    remainingAmountInWei = (weiAmount.add(totalContributedWei)).sub(currentLevelCap);
 		    currentAmountInWei = weiAmount.sub(remainingAmountInWei);
-            currentAmount = currentAmountInWei.div(currentLevelPrice);
-            nextAmount = remainingAmountInWei.div(nextLevelPrice);
+            currentAmount = currentAmountInWei.div(currentLevelPrice); // tokens name
+            nextAmount = remainingAmountInWei.div(nextLevelPrice); //tokens name
 	    } else {
-	        currentAmount = weiAmount.div(currentLevelPrice);
-			nextAmount = 0;
+	        currentAmount = weiAmount.div(currentLevelPrice); //tokens name
+			nextAmount = 0; //tokens name
 	    }
 
-		return (currentAmount, nextAmount);
+		return (currentAmount, nextAmount); //tokens name
 	}
 	
 	mapping(address => mapping(uint => uint)) getTokensBalance;
 	mapping(address => mapping(uint => bool)) isTokensTaken;
-	mapping(address => bool) isCalculated;
-	function realaseThreeHotHour(address _participant) public onlyController returns(bool) {
+	mapping(address => bool) public isCalculated;
+	function realaseThreeHotHour(address _participant) public onlyController returns(bool) { //modifier require(block.timestamp > threeHotHoursEnd);_;
 		uint _amount = unlockTokensAmount(_participant);
 		
 		if(isCalculated[_participant] == false) {
@@ -301,37 +305,35 @@ contract VernamCrowdSale is Ownable {
 	    }
 	}
 	
-	function unlockTokensAmount(address _participant) internal returns (uint) {
-        uint startTHHTime = whenBought[_participant];
-		
+	function unlockTokensAmount(address _participant) internal returns (uint) {  // modifier after threeHotHoursEnd
 		require(threeHotHoursTokens[_participant] > 0);
 		
-        if(block.timestamp < startTHHTime + FIRST_MONTH && isTokensTaken[_participant][0] == false) {
+        if(block.timestamp < FIRST_MONTH_END && isTokensTaken[_participant][0] == false) {
             return getTokens(_participant, 1); // First month
         } 
         
-        if(((block.timestamp >= startTHHTime + FIRST_MONTH) && (block.timestamp < startTHHTime + SECOND_MONTH)) 
+        if(((block.timestamp >= FIRST_MONTH_END) && (block.timestamp < SECOND_MONTH_END)) 
             && isTokensTaken[_participant][1] == false) 
         {
             return getTokens(_participant, 2); // Second month
         } 
         
-        if(((block.timestamp >= startTHHTime + SECOND_MONTH) && (block.timestamp < startTHHTime + THIRD_MONTH)) 
+        if(((block.timestamp >= SECOND_MONTH_END) && (block.timestamp < THIRD_MONTH_END)) 
             && isTokensTaken[_participant][2] == false) {
             return getTokens(_participant, 3); // Third month
         } 
         
-        if(((block.timestamp >= startTHHTime + THIRD_MONTH) && (block.timestamp < startTHHTime + FOURTH_MONTH)) 
+        if(((block.timestamp >= THIRD_MONTH_END) && (block.timestamp < FOURTH_MONTH_END)) 
             && isTokensTaken[_participant][3] == false) {
             return getTokens(_participant, 4); // Forth month
         } 
         
-        if(((block.timestamp >= startTHHTime + FOURTH_MONTH) && (block.timestamp < startTHHTime + FIFTH_MONTH)) 
+        if(((block.timestamp >= FOURTH_MONTH_END) && (block.timestamp < FIFTH_MONTH_END)) 
             && isTokensTaken[_participant][4] == false) {
             return getTokens(_participant, 5); // Fifth month
         } 
         
-        if((block.timestamp >= startTHHTime + FIFTH_MONTH) 
+        if((block.timestamp >= FIFTH_MONTH_END) 
             && isTokensTaken[_participant][5] == false) {
             return getTokens(_participant, 6); // Last month
         }
