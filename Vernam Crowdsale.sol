@@ -85,7 +85,7 @@ contract VernamCrowdSale is Ownable {
 
 	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
-	uint constant public threeHotHoursTokensCap = 100000; // 100 000 tokens
+	uint public threeHotHoursTokensCap = 100000; // 100 000 tokens
 	
 	uint public threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul(threeHotHoursTokensCap);
 	uint public threeHotHoursEnd;
@@ -134,7 +134,7 @@ contract VernamCrowdSale is Ownable {
 	mapping(address => bool) public isCalculated;
 	
 	// VernamCrowdsaleToken public vernamCrowdsaleToken;
-	// VernamWhiteListDeposit public vernamWhiteListDeposit;
+	VernamWhiteListDeposit public vernamWhiteListDeposit;
 	
 	// Modifiers
     modifier softCapNotReached() {
@@ -144,6 +144,12 @@ contract VernamCrowdSale is Ownable {
     
     modifier afterCrowdsale() {
         require(block.timestamp > thirdStageEnd);
+        _;
+    }
+    
+    modifier isInThreeHotHours {
+        require(isInPrivatePreSale == false);
+        require(block.timestamp <= threeHotHoursEnd);
         _;
     }
     
@@ -160,7 +166,7 @@ contract VernamCrowdSale is Ownable {
 	function VernamCrowdSale(address _vernamWhiteListDepositAddress, address _controllerAddress) public {
 		benecifiary = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
 		// vernamCrowdsaleToken = VernamCrowdsaleToken(vernamCrowdsaleTokenAddress);
-		// vernamWhiteListDeposit = VernamWhiteListDeposit(_vernamWhiteListDepositAddress);
+		vernamWhiteListDeposit = VernamWhiteListDeposit(_vernamWhiteListDepositAddress);
 		
 		startTime = block.timestamp;
 		privatePreSaleEnd = startTime.add(privatePreSaleDuration);
@@ -390,6 +396,26 @@ contract VernamCrowdSale is Ownable {
     
     function setContributedAmountInWei(address _participant) public softCapNotReached afterCrowdsale onlyController returns (bool) {
         contributedInWei[_participant] = 0;
+        
+        return true;
+    }
+    
+    
+    uint constant public whiteListAmountInWei = 10000000000000000; // 0.01 ETH
+    mapping(address => bool) getWhiteListTokens;
+    uint public tokensToGetFromWhiteList = whiteListAmountInWei.div(threeHotHoursPriceOfTokenInWei);
+    event TokensClaimed(address _participant, uint tokensToGetFromWhiteList);
+    
+    function claimTokens(address _participant) public isInThreeHotHours returns (bool) {
+        bool isWhiteListed = vernamWhiteListDeposit.isWhiteList(_participant);
+        
+        if(isWhiteListed == true && getWhiteListTokens[_participant] == false) {
+            getWhiteListTokens[_participant] = true;
+            
+            threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(tokensToGetFromWhiteList);
+        }
+        
+        emit TokensClaimed(_participant, tokensToGetFromWhiteList);
         
         return true;
     }
