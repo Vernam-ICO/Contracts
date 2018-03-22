@@ -59,7 +59,7 @@ contract VernamPrivatePreSale {
 	
 	function buyPreSale(address _participant, uint256 _value) payable public {
 		require(_value >= minimumContribution);
-		require(maximumCOntributionWEI >= totalInvested);
+		require(maximumCOntributionWEI >= totalInvested.add(_value));
 		beneficiary.transfer(_value);
 		weiBalances[_participant] = weiBalances[_participant].add(_value);
 		totalInvested = totalInvested.add(_value);
