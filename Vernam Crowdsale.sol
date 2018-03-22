@@ -170,7 +170,7 @@ contract VernamCrowdSale is Ownable {
     event TokensClaimed(address _participant, uint tokensToGetFromWhiteList);
      
 	function VernamCrowdSale(address _vernamWhiteListDepositAddress, address _controllerAddress) public {
-		benecifiary = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
+		beneficiary = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
 		// vernamCrowdsaleToken = VernamCrowdsaleToken(vernamCrowdsaleTokenAddress);
 	    vernamWhiteListDeposit = VernamWhiteListDeposit(_vernamWhiteListDepositAddress);
 		

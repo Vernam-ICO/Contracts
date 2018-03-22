@@ -86,27 +86,6 @@ contract Ownable {
 		burner = _burnerAddress;
 	}
 }
-/*
-contract KYCControl is Ownable {
-	
-	VernamToken crowdsaleToken;
-	event IsKYCApprovedLog(address _user, bool isApproved);
-
-	mapping(address => bool) isKYCApproved; // must check the array does everething is false
-	
-	function KYCControl(address _token){
-		crowdsaleToken = VernamToken(_token);
-	}
-	
-	function isKYCApprove(address _who) view public returns (bool _isAprroved){
-		return isKYCApproved[_who];
-	}
-
-	function KYCApprove(address _userAddress) onlyOwner public {
-		isKYCApproved[_userAddress] = true;
-		IsKYCApprovedLog(_userAddress, true);
-	}
-}*/
 
 contract VernamCrowdSaleToken is Ownable,CrowdsaleVernam {
 	using SafeMath for uint256;
@@ -123,7 +102,6 @@ contract VernamCrowdSaleToken is Ownable,CrowdsaleVernam {
 	
 	/* This creates an array with all balances */
 	mapping (address => uint256) public balances;
-	mapping (address => uint256) public threeHotHoursBalance;
 		
 	// This notifies clients about the amount burnt
 	event Burn(address indexed from, uint256 value);
