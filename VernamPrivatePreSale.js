@@ -62,7 +62,7 @@ contract VernamPrivatePreSale {
 		beneficiary.transfer(_value);
 		weiBalances[_participant] = weiBalances[_participant].add(_value);
 		totalInvested = totalInvested.add(_value);
-		uint256 tokens = (_value.mul(privatePreSalePrice));
+		uint256 tokens = ((_value).mul(1 ether)).div(privatePreSalePrice);
 		privatePreSaleSoldTokens = privatePreSaleSoldTokens.add(tokens);
 		privatePreSaleBalances[_participant] = privatePreSaleBalances[_participant].add(tokens);
 		isParticipatePrivate[_participant] = true;
