@@ -30,30 +30,20 @@ library SafeMath {
 	}
 }
 
-contract CrowdsaleVernam {
-  function totalSupply() public view returns (uint256);
-  function balanceOf(address who) public view returns (uint256);
-  function transfer(address to, uint256 value) public returns (bool);
-  event Transfer(address indexed from, address indexed to, uint256 value);
-}
-
 contract Ownable {
 	address public firstOwner;
-	address public secondOwner;
 
 	address public minter;
 	address public burner;
 
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-	function Ownable(address _secondOwner) public {
-		require(_secondOwner != msg.sender && _secondOwner != address(0));
+	function Ownable() public {
 		firstOwner = msg.sender;
-		secondOwner = _secondOwner;
 	}
 
 	modifier onlyOwner() {
-		require(msg.sender == firstOwner || msg.sender == secondOwner);
+		require(msg.sender == firstOwner);
 		_;
 	}
 	
@@ -74,7 +64,7 @@ contract Ownable {
 
 	function transferOwnership(address newOwner) public onlyOwner {
 		require(newOwner != address(0));
-		OwnershipTransferred(firstOwner, newOwner);
+		emit OwnershipTransferred(firstOwner, newOwner);
 		firstOwner = newOwner;
 	}
 	
@@ -87,9 +77,9 @@ contract Ownable {
 	}
 }
 
-contract VernamCrowdSaleToken is Ownable,CrowdsaleVernam {
+contract VernamCrowdSaleToken is Ownable {
 	using SafeMath for uint256;
-	
+    event Transfer(address indexed from, address indexed to, uint256 value);
 	/* Public variables of the token */
 	string public name;
 	string public symbol;
