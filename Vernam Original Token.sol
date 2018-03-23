@@ -49,10 +49,7 @@ contract VernamToken is ERC20 {
 	string public symbol;
 	uint8 public decimals;
 	uint256 public _totalSupply;
-	
-	/*Private Variables*/
-	uint256 constant POW = 10 ** 18;
-	
+		
 	modifier onlyPayloadSize(uint256 numwords) {                                         //https://blog.golemproject.net/how-to-find-10m-by-just-reading-blockchain-6ae9d39fcd95
 		assert(msg.data.length == numwords * 32 + 4);
 		_;
@@ -63,12 +60,12 @@ contract VernamToken is ERC20 {
     mapping (address => mapping (address => uint256)) internal allowed;
 
 	/* Initializes contract with initial supply tokens to the creator of the contract */
-	function VernamToken() public {
+	function VernamToken(uint256 _totalSupply_) public {
 		name = "Vernam Token";                                   	// Set the name for display purposes
 		symbol = "VRN";                               				// Set the symbol for display purposes
 		decimals = 18;                            					// Amount of decimals for display purposes
-		_totalSupply = SafeMath.mul(1000000000,POW);     			//1 Billion Tokens with 18 Decimals
-		balances[msg.sender] = SafeMath.mul(1000000000,POW);
+		_totalSupply = _totalSupply_;     			//1 Billion Tokens with 18 Decimals
+		balances[msg.sender] = _totalSupply_;
 	}
 
 	function transfer(address _to, uint256 _value) onlyPayloadSize(2) public returns (bool _success) {

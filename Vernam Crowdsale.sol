@@ -122,7 +122,6 @@ contract VernamCrowdSale is Ownable {
 	uint public FIFTH_MONTH_END ;
 
 	mapping(address => uint) public contributedInWei;
-	mapping(address => uint) public boughtTokens;
 	mapping(address => uint) public threeHotHoursTokens;
 	mapping(address => mapping(uint => uint)) public getTokensBalance;
 	mapping(address => mapping(uint => bool)) public isTokensTaken;
@@ -210,7 +209,6 @@ contract VernamCrowdSale is Ownable {
 		uint currentLevelTokens;
 		uint nextLevelTokens;
 		(currentLevelTokens, nextLevelTokens) = calculateAndCreateTokens(_weiAmount);
-		
 		uint tokensAmount = currentLevelTokens.add(nextLevelTokens);
 		require(totalSoldTokens.add(tokensAmount) <= TOKENS_HARD_CAP);
 		
@@ -220,12 +218,10 @@ contract VernamCrowdSale is Ownable {
 		
 		if(isThreeHotHoursActive == true) {
 			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
-			boughtTokens[_participant] = boughtTokens[_participant].add(nextLevelTokens);
 			isCalculated[_participant] = false;
 			//vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);        
 		} else {	
-			boughtTokens[_participant] = boughtTokens[_participant].add(tokensAmount);
-			//vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);        
+			//vernamCrowdsaleToken.mintToken(_participant, tokensAmount);        
 		}
 		
 		totalSoldTokens = totalSoldTokens.add(tokensAmount);
@@ -299,7 +295,6 @@ contract VernamCrowdSale is Ownable {
 		}
 		
 		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
-		boughtTokens[_participant] = boughtTokens[_participant].add(_amount);
 		//vernamCrowdsaleToken.mintToken(_participant, _amount);        
 
 		emit ReleasedTokens(_amount);
@@ -376,7 +371,7 @@ contract VernamCrowdSale is Ownable {
         return contributedInWei[_participant];
     }
     
-    function setContributedAmountInWei(address _participant) public softCapNotReached afterCrowdsale onlyController returns (bool) {
+    function setContributedAmountInWei(address _participant) public softCapNotReached afterCrowdsale onlyController returns (bool) { //view ???
         contributedInWei[_participant] = 0;
         
         return true;
