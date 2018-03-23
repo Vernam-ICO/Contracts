@@ -30,8 +30,8 @@ library SafeMath {
 	}
 }
 
-contract Ownable {
-	address public firstOwner;
+contract OwnableToken {
+	address public owner;
 
 	address public minter;
 	address public burner;
@@ -39,11 +39,11 @@ contract Ownable {
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
 	function Ownable() public {
-		firstOwner = msg.sender;
+		owner = msg.sender;
 	}
 
 	modifier onlyOwner() {
-		require(msg.sender == firstOwner);
+		require(msg.sender == owner);
 		_;
 	}
 	
@@ -64,8 +64,8 @@ contract Ownable {
 
 	function transferOwnership(address newOwner) public onlyOwner {
 		require(newOwner != address(0));
-		emit OwnershipTransferred(firstOwner, newOwner);
-		firstOwner = newOwner;
+		emit OwnershipTransferred(owner, newOwner);
+		owner = newOwner;
 	}
 	
 	function setMinter(address _minterAddress) public onlyOwner {
@@ -77,9 +77,11 @@ contract Ownable {
 	}
 }
 
-contract VernamCrowdSaleToken is Ownable {
+contract VernamCrowdSaleToken is OwnableToken {
 	using SafeMath for uint256;
+	
     event Transfer(address indexed from, address indexed to, uint256 value);
+    
 	/* Public variables of the token */
 	string public name;
 	string public symbol;

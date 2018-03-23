@@ -30,37 +30,6 @@ library SafeMath {
 	}
 }
 
-contract Ownable {
-	address public owner;
-	address public controller;
-	
-	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-    
-	function Ownable() public {
-		owner = msg.sender;
-	}
-
-	modifier onlyOwner() {
-		require(msg.sender == owner);
-		_;
-	}
-	
-	modifier onlyController() {
-		require(msg.sender == controller);
-		_;
-	}
-
-	function transferOwnership(address newOwner) public onlyOwner {
-		require(newOwner != address(0));
-		emit OwnershipTransferred(owner, newOwner);
-		owner = newOwner;
-	}
-	
-	function setController(address _controllerAddress) public onlyOwner {
-		controller = _controllerAddress;
-	}
-}
-
 contract VernamCrowdSale is Ownable {
 	using SafeMath for uint256;
 		
@@ -74,9 +43,6 @@ contract VernamCrowdSale is Ownable {
 	uint constant minimumContribution = 100 finney;
 	uint constant maximumContribution = 500 ether;
 	uint public totalContributedWei;
-    
-    uint constant public whiteListAmountInWei = 10000000000000000; // 0.01 ETH
-    uint public tokensToGetFromWhiteList = whiteListAmountInWei.div(threeHotHoursPriceOfTokenInWei);
     
 	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
@@ -126,9 +92,8 @@ contract VernamCrowdSale is Ownable {
 	mapping(address => mapping(uint => uint)) public getTokensBalance;
 	mapping(address => mapping(uint => bool)) public isTokensTaken;
 	mapping(address => bool) public isCalculated;
-	mapping(address => bool) getWhiteListTokens;
 	
-	// VernamCrowdsaleToken public vernamCrowdsaleToken;
+	VernamCrowdSaleToken public vernamCrowdsaleToken;
 	VernamWhiteListDeposit public vernamWhiteListDeposit;
 	
 	// Modifiers
@@ -153,14 +118,13 @@ contract VernamCrowdSale is Ownable {
     event ReleasedTokens(uint _amount);
     event TokensClaimed(address _participant, uint tokensToGetFromWhiteList);
      
-	function VernamCrowdSale(address _vernamWhiteListDepositAddress, address _controllerAddress) public {
-		beneficiary = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
-		// vernamCrowdsaleToken = VernamCrowdsaleToken(vernamCrowdsaleTokenAddress);
+	function VernamCrowdSale(address _vernamWhiteListDepositAddress, address _vernamCrowdSaleTokenAddress, address _controllerAddress) public {
+		benecifiary = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
+		vernamCrowdsaleToken = VernamCrowdSaleToken(_vernamCrowdSaleTokenAddress);
 	    vernamWhiteListDeposit = VernamWhiteListDeposit(_vernamWhiteListDepositAddress);
-		
-		startTime = block.timestamp;
-		privatePreSaleEnd = startTime.add(privatePreSaleDuration);
-		
+        
+        // Address of wallet where the ethers will go 
+        
 		setController(_controllerAddress);
 	}
 	
@@ -176,9 +140,9 @@ contract VernamCrowdSale is Ownable {
 		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
 	
 
-	    uint whiteListParticipantsCount = vernamWhiteListDeposit.getCounter();
-	    uint tokensForClaim = tokensToGetFromWhiteList.mul(whiteListParticipantsCount);
-	    threeHotHoursTokensCap = threeHotHoursTokensCap.sub(tokensForClaim);
+	    //uint whiteListParticipantsCount = vernamWhiteListDeposit.getCounter();
+	    //uint tokensForClaim = tokensToGetFromWhiteList.mul(whiteListParticipantsCount);
+	    //threeHotHoursTokensCap = threeHotHoursTokensCap.sub(tokensForClaim);
 	    
 		timeLock();
 
@@ -219,9 +183,9 @@ contract VernamCrowdSale is Ownable {
 		if(isThreeHotHoursActive == true) {
 			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
 			isCalculated[_participant] = false;
-			//vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);        
+			vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);        
 		} else {	
-			//vernamCrowdsaleToken.mintToken(_participant, tokensAmount);        
+			vernamCrowdsaleToken.mintToken(_participant, tokensAmount);        
 		}
 		
 		totalSoldTokens = totalSoldTokens.add(tokensAmount);
@@ -295,7 +259,7 @@ contract VernamCrowdSale is Ownable {
 		}
 		
 		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
-		//vernamCrowdsaleToken.mintToken(_participant, _amount);        
+		vernamCrowdsaleToken.mintToken(_participant, _amount);        
 
 		emit ReleasedTokens(_amount);
 		
@@ -377,11 +341,19 @@ contract VernamCrowdSale is Ownable {
         return true;
     }
     
+    /* 
+    
+    TODO after whitelist contract is ready 
+    
+    uint constant public whiteListAmountInWei = 10000000000000000; // 0.01 ETH
+    uint public tokensToGetFromWhiteList = whiteListAmountInWei.div(threeHotHoursPriceOfTokenInWei);
+    mapping(address => bool) getWhiteListTokens;
+   
     function claimTokens(address _participant) public returns (bool) {
         bool isWhiteListed = vernamWhiteListDeposit.isWhiteList(_participant);
         require(isWhiteListed == true);
         require(getWhiteListTokens[_participant] == false);
-        require(block.timestamp < threeHotHoursEnd)
+        require(block.timestamp < threeHotHoursEnd);
         getWhiteListTokens[_participant] = true;
             
         threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(tokensToGetFromWhiteList);
@@ -389,5 +361,5 @@ contract VernamCrowdSale is Ownable {
         emit TokensClaimed(_participant, tokensToGetFromWhiteList);
         
         return true;
-    }
+    }*/
 }
