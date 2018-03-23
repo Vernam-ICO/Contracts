@@ -67,7 +67,6 @@ contract VernamCrowdSale is Ownable {
 	address public benecifiary;
 	
 	bool public isThreeHotHoursActive;
-	bool isInPrivatePreSale;
 	
 	uint public startTime;
 	uint public totalSoldTokens;
@@ -75,13 +74,6 @@ contract VernamCrowdSale is Ownable {
 	uint constant minimumContribution = 100 finney;
 	uint constant maximumContribution = 500 ether;
 	uint public totalContributedWei;
-	
-	uint constant public privatePreSaleDuration = 30 days;
-	uint constant public privatePreSalePriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
-	uint constant public privatePreSaleTokensCap = 100000; // 100 000 tokens
-	// uint constant public privatePreSaleCapInWei = privatePreSalePriceOfTokenInWei.mul(privatePreSaleTokensCap);
-	
-	uint public privatePreSaleEnd;
     
     uint constant public whiteListAmountInWei = 10000000000000000; // 0.01 ETH
     uint public tokensToGetFromWhiteList = whiteListAmountInWei.div(threeHotHoursPriceOfTokenInWei);
@@ -89,9 +81,9 @@ contract VernamCrowdSale is Ownable {
 	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
 	uint public threeHotHoursTokensCap = 100000; // 100 000 tokens
-	
 	uint public threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul(threeHotHoursTokensCap);
 	uint public threeHotHoursEnd;
+	uint public firstHotHoursEnd;
 	
 	uint constant public firstStageDuration = 24 hours;
 	uint constant public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
@@ -151,19 +143,12 @@ contract VernamCrowdSale is Ownable {
         _;
     }
     
-    modifier isInThreeHotHours {
-        require(isInPrivatePreSale == false);
-        require(block.timestamp <= threeHotHoursEnd);
-        _;
-    }
-    
     modifier isAfterThreeHotHours {
 	    require(block.timestamp > threeHotHoursEnd);
 	    _;
 	}
 	
     // Events
-    event PrivatePreSaleActivated(uint startTime, uint endTime);
     event CrowdsaleActivated(uint startTime, uint endTime);
     event TokensBought(address participant, uint weiAmount, uint tokensAmount);
     event ReleasedTokens(uint _amount);
@@ -176,26 +161,22 @@ contract VernamCrowdSale is Ownable {
 		
 		startTime = block.timestamp;
 		privatePreSaleEnd = startTime.add(privatePreSaleDuration);
-		isInPrivatePreSale = true;
 		
 		setController(_controllerAddress);
-		
-		emit PrivatePreSaleActivated(startTime, privatePreSaleEnd);
 	}
 	
 	function activateCrowdSale() public onlyOwner {
-		require(isInPrivatePreSale == true);
 	    
 	    isThreeHotHoursActive = true;
 		
 		startTime = block.timestamp;
+		firstHotHoursEnd = startTime.add(1 hours);
 		threeHotHoursEnd = startTime.add(threeHotHoursDuration);
 		firstStageEnd = threeHotHoursEnd.add(firstStageDuration);
 		secondStageEnd = firstStageEnd.add(secondStageDuration);
 		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
 	
-	    isInPrivatePreSale = false;
-	    
+
 	    uint whiteListParticipantsCount = vernamWhiteListDeposit.getCounter();
 	    uint tokensForClaim = tokensToGetFromWhiteList.mul(whiteListParticipantsCount);
 	    threeHotHoursTokensCap = threeHotHoursTokensCap.sub(tokensForClaim);
@@ -222,10 +203,8 @@ contract VernamCrowdSale is Ownable {
 		require(_weiAmount <= maximumContribution);
 		
 		validatePurchase(_participant, _weiAmount);
-		
-		if (isInPrivatePreSale == true) {
-		    privatePresaleBuy(_participant, _weiAmount);  
-		    return true;
+		if(block.timestamp <= firstHotHoursEnd){
+			require(vernamWhiteListDeposit.isWhiteList(_participant));
 		}
 		
 		uint currentLevelTokens;
@@ -236,7 +215,6 @@ contract VernamCrowdSale is Ownable {
 		require(totalSoldTokens.add(tokensAmount) <= TOKENS_HARD_CAP);
 		
 		// transfer ethers here
-		//vernamCrowdsaleToken.mintToken(_participant, tokens);        
 		
 		contributedInWei[_participant] = contributedInWei[_participant].add(_weiAmount);
 		
@@ -244,8 +222,10 @@ contract VernamCrowdSale is Ownable {
 			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
 			boughtTokens[_participant] = boughtTokens[_participant].add(nextLevelTokens);
 			isCalculated[_participant] = false;
+			//vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);        
 		} else {	
 			boughtTokens[_participant] = boughtTokens[_participant].add(tokensAmount);
+			//vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);        
 		}
 		
 		totalSoldTokens = totalSoldTokens.add(tokensAmount);
@@ -254,19 +234,6 @@ contract VernamCrowdSale is Ownable {
 		emit TokensBought(_participant, _weiAmount, tokensAmount);
 		
 		return true;
-	}
-	
-	function privatePresaleBuy(address _participant, uint _weiAmount) internal {
-		require(isInPrivatePreSale == true);
-		require(totalSoldTokens < privatePreSaleTokensCap);
-        require(block.timestamp <= privatePreSaleEnd);
-        
-		uint tokens = _weiAmount.div(privatePreSalePriceOfTokenInWei);
-		boughtTokens[_participant] = boughtTokens[_participant].add(tokens);
-		
-		totalSoldTokens = totalSoldTokens.add(tokens);
-		
-		emit TokensBought(_participant, _weiAmount, tokens);
 	}
 	
 	function calculateAndCreateTokens(uint weiAmount) internal returns (uint _currentLevelTokensAmount, uint _nextLevelTokensAmount) {
@@ -333,7 +300,8 @@ contract VernamCrowdSale is Ownable {
 		
 		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
 		boughtTokens[_participant] = boughtTokens[_participant].add(_amount);
-		
+		//vernamCrowdsaleToken.mintToken(_participant, _amount);        
+
 		emit ReleasedTokens(_amount);
 		
 		return true;
@@ -418,7 +386,7 @@ contract VernamCrowdSale is Ownable {
         bool isWhiteListed = vernamWhiteListDeposit.isWhiteList(_participant);
         require(isWhiteListed == true);
         require(getWhiteListTokens[_participant] == false);
-        require(block.timestamp < threeHotHoursEnd || threeHotHoursTokensCap < )
+        require(block.timestamp < threeHotHoursEnd)
         getWhiteListTokens[_participant] = true;
             
         threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(tokensToGetFromWhiteList);
