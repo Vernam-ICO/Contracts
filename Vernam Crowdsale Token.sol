@@ -32,13 +32,13 @@ library SafeMath {
 
 contract OwnableToken {
 	address public owner;
-
 	address public minter;
 	address public burner;
-
+	address public controller;
+	
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-	function Ownable() public {
+	function OwnableToken() public {
 		owner = msg.sender;
 	}
 
@@ -54,6 +54,10 @@ contract OwnableToken {
 	
 	modifier onlyBurner() {
 		require(msg.sender == burner);
+		_;
+	}
+	modifier onlyController() {
+		require(msg.sender == controller);
 		_;
 	}
   
@@ -75,9 +79,27 @@ contract OwnableToken {
 	function setBurner(address _burnerAddress) public onlyOwner {
 		burner = _burnerAddress;
 	}
+	
+	function setControler(address _controller) public onlyOwner {
+		controller = _controller;
+	}
 }
 
-contract VernamCrowdSaleToken is OwnableToken {
+contract KYCControl is OwnableToken {
+	event KYCApproved(address _user, bool isApproved);
+	mapping(address => bool) public KYCParticipants;
+	
+	function isKYCApproved(address _who) view public returns (bool _isAprroved){
+		return KYCParticipants[_who];
+	}
+
+	function approveKYC(address _userAddress) onlyController public {
+		KYCParticipants[_userAddress] = true;
+		emit KYCApproved(_userAddress, true);
+	}
+}
+
+contract VernamCrowdSaleToken is OwnableToken, KYCControl {
 	using SafeMath for uint256;
 	
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -111,7 +133,8 @@ contract VernamCrowdSaleToken is OwnableToken {
 	function mintToken(address _participant, uint256 _mintedAmount) public onlyMinter returns (bool _success) {
 		require(_mintedAmount > 0);
 		require(_circulatingSupply.add(_mintedAmount) <= _totalSupply);
-		
+		KYCParticipants[_participant] = false;
+
         balances[_participant] =  balances[_participant].add(_mintedAmount);
         _circulatingSupply = _circulatingSupply.add(_mintedAmount);
 		
@@ -125,11 +148,10 @@ contract VernamCrowdSaleToken is OwnableToken {
 	function burn(address _participant, uint256 _value) public onlyBurner returns (bool _success) {
         require(_value > 0);
 		require(balances[_participant] >= _value);   							// Check if the sender has enough
-        
+		require(isKYCApproved(_participant) == true);
 		balances[_participant] = balances[_participant].sub(_value);            // Subtract from the sender
 		_circulatingSupply = _circulatingSupply.sub(_value);
         _totalSupply = _totalSupply.sub(_value);                      			// Updates totalSupply
-		
 		emit Transfer(_participant, 0, _value);
         emit Burn(_participant, _value);
         

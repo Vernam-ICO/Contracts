@@ -47,7 +47,7 @@ contract Controller {
 	}
 	
 	function approveKYC(address _participant) public returns(bool _success) {
-	    vernamCrowdSale.approveKYC(_participant);
+	    vernamCrowdsaleToken.approveKYC(_participant);
 	    
 	    return true;
 	}

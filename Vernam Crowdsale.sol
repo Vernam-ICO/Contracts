@@ -29,24 +29,61 @@ library SafeMath {
 		return c;
 	}
 }
-
-contract KYCControl is Ownable {
-	event KYCApproved(address _user, bool isApproved);
-
-	mapping(address => bool) KYCParticipants;
+contract OwnableToken {
+	address public owner;
+	address public minter;
+	address public burner;
+	address public controller;
 	
-	function isKYCApproved(address _who) view public returns (bool _isAprroved){
-		return KYCParticipants[_who];
+	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+	function OwnableToken() public {
+		owner = msg.sender;
 	}
 
-	function approveKYC(address _userAddress) onlyOwner public {
-		KYCParticipants[_userAddress] = true;
-		
-		emit KYCApproved(_userAddress, true);
+	modifier onlyOwner() {
+		require(msg.sender == owner);
+		_;
+	}
+	
+	modifier onlyMinter() {
+		require(msg.sender == minter);
+		_;
+	}
+	
+	modifier onlyBurner() {
+		require(msg.sender == burner);
+		_;
+	}
+	modifier onlyController() {
+		require(msg.sender == controller);
+		_;
+	}
+  
+	modifier onlyPayloadSize(uint256 numwords) {                                       
+		assert(msg.data.length == numwords * 32 + 4);
+		_;
+	}
+
+	function transferOwnership(address newOwner) public onlyOwner {
+		require(newOwner != address(0));
+		emit OwnershipTransferred(owner, newOwner);
+		owner = newOwner;
+	}
+	
+	function setMinter(address _minterAddress) public onlyOwner {
+		minter = _minterAddress;
+	}
+	
+	function setBurner(address _burnerAddress) public onlyOwner {
+		burner = _burnerAddress;
+	}
+	
+	function setControler(address _controller) public onlyOwner {
+		controller = _controller;
 	}
 }
-
-contract VernamCrowdSale is Ownable, KYCControl {
+contract VernamCrowdSale is OwnableToken {
 	using SafeMath for uint256;
 		
 	address public benecifiary;
@@ -207,7 +244,6 @@ contract VernamCrowdSale is Ownable, KYCControl {
 		totalSoldTokens = totalSoldTokens.add(tokensAmount);
 		totalContributedWei = totalContributedWei.add(_weiAmount);
 		
-		KYCParticipants[_participant] = false;
 		
 		emit TokensBought(_participant, _weiAmount, tokensAmount);
 		
