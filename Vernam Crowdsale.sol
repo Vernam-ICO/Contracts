@@ -30,7 +30,23 @@ library SafeMath {
 	}
 }
 
-contract VernamCrowdSale is Ownable {
+contract KYCControl is Ownable {
+	event KYCApproved(address _user, bool isApproved);
+
+	mapping(address => bool) KYCParticipants;
+	
+	function isKYCApproved(address _who) view public returns (bool _isAprroved){
+		return KYCParticipants[_who];
+	}
+
+	function approveKYC(address _userAddress) onlyOwner public {
+		KYCParticipants[_userAddress] = true;
+		
+		emit KYCApproved(_userAddress, true);
+	}
+}
+
+contract VernamCrowdSale is Ownable, KYCControl {
 	using SafeMath for uint256;
 		
 	address public benecifiary;
@@ -190,6 +206,8 @@ contract VernamCrowdSale is Ownable {
 		
 		totalSoldTokens = totalSoldTokens.add(tokensAmount);
 		totalContributedWei = totalContributedWei.add(_weiAmount);
+		
+		KYCParticipants[_participant] = false;
 		
 		emit TokensBought(_participant, _weiAmount, tokensAmount);
 		

@@ -33,6 +33,10 @@ contract Controller {
     }
 	
 	function convertTokens(address _participant) public {
+	    bool isApproved = vernamCrowdSale.isKYCApproved(_participant);
+	    
+	    require(isApproved == true);
+	    
 		uint256 tokens = vernamCrowdsaleToken.balanceOf(_participant);
 		
 		require(tokens > 0);
@@ -40,5 +44,11 @@ contract Controller {
 		require(vernamToken.transfer(_participant, tokens));
 		
 		emit Convert(_participant, tokens);
+	}
+	
+	function approveKYC(address _participant) public returns(bool _success) {
+	    vernamCrowdSale.approveKYC(_participant);
+	    
+	    return true;
 	}
 }
