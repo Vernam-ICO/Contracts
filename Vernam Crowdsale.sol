@@ -29,15 +29,13 @@ library SafeMath {
 		return c;
 	}
 }
-contract OwnableToken {
+contract Ownable {
 	address public owner;
-	address public minter;
-	address public burner;
 	address public controller;
 	
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-	function OwnableToken() public {
+	function Ownable() public {
 		owner = msg.sender;
 	}
 
@@ -46,22 +44,8 @@ contract OwnableToken {
 		_;
 	}
 	
-	modifier onlyMinter() {
-		require(msg.sender == minter);
-		_;
-	}
-	
-	modifier onlyBurner() {
-		require(msg.sender == burner);
-		_;
-	}
 	modifier onlyController() {
 		require(msg.sender == controller);
-		_;
-	}
-  
-	modifier onlyPayloadSize(uint256 numwords) {                                       
-		assert(msg.data.length == numwords * 32 + 4);
 		_;
 	}
 
@@ -71,19 +55,12 @@ contract OwnableToken {
 		owner = newOwner;
 	}
 	
-	function setMinter(address _minterAddress) public onlyOwner {
-		minter = _minterAddress;
-	}
-	
-	function setBurner(address _burnerAddress) public onlyOwner {
-		burner = _burnerAddress;
-	}
-	
 	function setControler(address _controller) public onlyOwner {
 		controller = _controller;
 	}
 }
-contract VernamCrowdSale is OwnableToken {
+
+contract VernamCrowdSale is Ownable {
 	using SafeMath for uint256;
 		
 	address public benecifiary;
@@ -176,8 +153,6 @@ contract VernamCrowdSale is OwnableToken {
 		vernamCrowdsaleToken = VernamCrowdSaleToken(_vernamCrowdSaleTokenAddress);
 	    vernamWhiteListDeposit = VernamWhiteListDeposit(_vernamWhiteListDepositAddress);
         
-        // Address of wallet where the ethers will go 
-        
 		setController(_controllerAddress);
 	}
 	
@@ -229,7 +204,8 @@ contract VernamCrowdSale is OwnableToken {
 		uint tokensAmount = currentLevelTokens.add(nextLevelTokens);
 		require(totalSoldTokens.add(tokensAmount) <= TOKENS_HARD_CAP);
 		
-		// transfer ethers here
+		// Transfer Ethers
+		benecifiary.transfer(_weiAmount);
 		
 		contributedInWei[_participant] = contributedInWei[_participant].add(_weiAmount);
 		
