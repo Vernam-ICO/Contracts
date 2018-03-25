@@ -66,6 +66,7 @@ contract VernamCrowdSale is Ownable {
 	address public benecifiary;
 	
 	bool public isThreeHotHoursActive;
+	bool public isInCrowdsale; // NEW
 	
 	uint public startTime;
 	uint public totalSoldTokens;
@@ -153,6 +154,8 @@ contract VernamCrowdSale is Ownable {
 		vernamCrowdsaleToken = VernamCrowdSaleToken(_vernamCrowdSaleTokenAddress);
 	    vernamWhiteListDeposit = VernamWhiteListDeposit(_vernamWhiteListDepositAddress);
         
+		isInCrowdsale = false;
+		
 		setController(_controllerAddress);
 	}
 	
@@ -173,7 +176,9 @@ contract VernamCrowdSale is Ownable {
 	    //threeHotHoursTokensCap = threeHotHoursTokensCap.sub(tokensForClaim);
 	    
 		timeLock();
-
+		
+		isInCrowdsale = true; // NEW
+		
 	    emit CrowdsaleActivated(startTime, thirdStageEnd);
 	}
 	
@@ -190,6 +195,7 @@ contract VernamCrowdSale is Ownable {
 	}
 	
 	function buyTokens(address _participant, uint _weiAmount) public payable returns(bool) {
+		require(isInCrowdsale == true); // NEW
 		require(_weiAmount >= minimumContribution); // if value is smaller than most expensive stage price will count 0 tokens 
 		require(_weiAmount <= maximumContribution);
 		
@@ -202,7 +208,11 @@ contract VernamCrowdSale is Ownable {
 		uint nextLevelTokens;
 		(currentLevelTokens, nextLevelTokens) = calculateAndCreateTokens(_weiAmount);
 		uint tokensAmount = currentLevelTokens.add(nextLevelTokens);
-		require(totalSoldTokens.add(tokensAmount) <= TOKENS_HARD_CAP);
+		
+		// NEW
+		if(totalSoldTokens.add(tokensAmount) <= TOKENS_HARD_CAP) {
+			isInCrowdsale = false;
+		}
 		
 		// Transfer Ethers
 		benecifiary.transfer(_weiAmount);
@@ -308,45 +318,52 @@ contract VernamCrowdSale is Ownable {
 	    }
 	}
 	
+	uint public constant FIRST_MONTH = 0;
+	uint public constant SECOND_MONTH = 1;
+	uint public constant THIRD_MONTH = 2;
+	uint public constant FORTH_MONTH = 3;
+	uint public constant FIFTH_MONTH = 4;
+	uint public constant SIXTH_MONTH = 5;
+	
 	function unlockTokensAmount(address _participant) internal returns (uint) {
 		require(threeHotHoursTokens[_participant] > 0);
 		
-        if(block.timestamp < FIRST_MONTH_END && isTokensTaken[_participant][0] == false) {
-            return getTokens(_participant, 1); // First month
+        if(block.timestamp < FIRST_MONTH_END && isTokensTaken[_participant][FIRST_MONTH] == false) {
+            return getTokens(_participant, FIRST_MONTH.add(1)); // First month
         } 
         
         if(((block.timestamp >= FIRST_MONTH_END) && (block.timestamp < SECOND_MONTH_END)) 
-            && isTokensTaken[_participant][1] == false) 
+            && isTokensTaken[_participant][SECOND_MONTH] == false) 
         {
-            return getTokens(_participant, 2); // Second month
+            return getTokens(_participant, SECOND_MONTH.add(1)); // Second month
         } 
         
         if(((block.timestamp >= SECOND_MONTH_END) && (block.timestamp < THIRD_MONTH_END)) 
-            && isTokensTaken[_participant][2] == false) {
-            return getTokens(_participant, 3); // Third month
+            && isTokensTaken[_participant][THIRD_MONTH] == false) {
+            return getTokens(_participant, THIRD_MONTH.add(1)); // Third month
         } 
         
         if(((block.timestamp >= THIRD_MONTH_END) && (block.timestamp < FOURTH_MONTH_END)) 
-            && isTokensTaken[_participant][3] == false) {
-            return getTokens(_participant, 4); // Forth month
+            && isTokensTaken[_participant][FORTH_MONTH] == false) {
+            return getTokens(_participant, FORTH_MONTH.add(1)); // Forth month
         } 
         
         if(((block.timestamp >= FOURTH_MONTH_END) && (block.timestamp < FIFTH_MONTH_END)) 
-            && isTokensTaken[_participant][4] == false) {
-            return getTokens(_participant, 5); // Fifth month
+            && isTokensTaken[_participant][FIFTH_MONTH] == false) {
+            return getTokens(_participant, FIFTH_MONTH.add(1)); // Fifth month
         } 
         
         if((block.timestamp >= FIFTH_MONTH_END) 
-            && isTokensTaken[_participant][5] == false) {
-            return getTokens(_participant, 6); // Last month
+            && isTokensTaken[_participant][SIXTH_MONTH] == false) {
+            return getTokens(_participant, SIXTH_MONTH.add(1)); // Last month
         }
     }
     
     function getTokens(address _participant, uint _period) internal returns(uint) {
         uint tokens = 0;
-        for(uint month = 0; month < _period; month++) {
-            if(isTokensTaken[_participant][month] == false) {
-                isTokensTaken[_participant][month] == true;
+        for(uint month = 0; month < _period; month++) { // We can make it <= and do not add 1 to constants 
+            if(isTokensTaken[_participant][month] == false) { // We can check is there a balance in getTokensBalance() and we do not need this boolean
+                isTokensTaken[_participant][month] == true; // we do not need it
                 
                 tokens += getTokensBalance[_participant][month];
                 getTokensBalance[_participant][month] = 0;
