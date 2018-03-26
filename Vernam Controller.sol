@@ -33,7 +33,7 @@ contract Controller {
     }
 	
 	function convertTokens(address _participant) public {
-	    bool isApproved = vernamCrowdSale.isKYCApproved(_participant);
+	    bool isApproved = vernamCrowdsaleToken.isKYCApproved(_participant);
 	    
 	    require(isApproved == true);
 	    
