@@ -77,22 +77,22 @@ contract VernamCrowdSale is Ownable {
     
 	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
-	uint public threeHotHoursTokensCap = SafeMath.mul(100000,POW); // 100 000 tokens
-	uint public threeHotHoursCapInWei = (threeHotHoursPriceOfTokenInWei.mul(threeHotHoursTokensCap)).div(POW);
+	uint public threeHotHoursTokensCap = 100000000000000000000000; // 100 000 tokens
+	uint public threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
 	uint public threeHotHoursEnd;
 
 	uint constant public firstStageDuration = 24 hours;
 	uint constant public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
-	uint constant public firstStageTokensCap = SafeMath.mul(100000,POW); // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
+	uint constant public firstStageTokensCap = 100000000000000000000000; // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
 
-    uint public firstStageCapInWei = (firstStagePriceOfTokenInWei.mul(firstStageTokensCap)).div(POW);
+    uint public firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
 	uint public firstStageEnd;
 	
 	uint constant public secondStageDuration = 6 days;
 	uint constant public secondStagePriceOfTokenInWei = 400000000000000 wei;    //1 eth == 2500
-	uint constant public secondStageTokensCap = SafeMath.mul(100000,POW); // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
+	uint constant public secondStageTokensCap = 100000000000000000000000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
     
-    uint public secondStageCapInWei = (secondStagePriceOfTokenInWei.mul(secondStageTokensCap)).div(POW);
+    uint public secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
 	uint public secondStageEnd;
 	
 	uint constant public thirdStageDuration = 26 days;
@@ -100,11 +100,11 @@ contract VernamCrowdSale is Ownable {
 	
 	uint constant public thirdStageDiscountPriceOfTokenInWei = 800000000000000 wei;  //1 eth == 1250
 	
-	uint constant public thirdStageTokens = SafeMath.mul(100000,POW); // 100 000 tokens //maybe not constant because we must recalculate if previous have remainig
+	uint constant public thirdStageTokens = 100000000000000000000000; // 100 000 tokens //maybe not constant because we must recalculate if previous have remainig
 	uint public thirdStageEnd;
 	
-	uint public thirdStageDiscountCapInWei = (thirdStageDiscountPriceOfTokenInWei.mul(thirdStageTokens)).div(POW);
-	uint public thirdStageCapInWei = (thirdStagePriceOfTokenInWei.mul(thirdStageTokens)).div(POW);
+	uint public thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
+	uint public thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
 	
 	uint constant public TOKENS_SOFT_CAP = 40000000000000000000000000;  // 40 000 000 with 18 decimals
 	uint constant public TOKENS_HARD_CAP = 500000000000000000000000000; // 500 000 000 with 18 decimals
@@ -149,7 +149,7 @@ contract VernamCrowdSale is Ownable {
     event TokensBought(address participant, uint weiAmount, uint tokensAmount);
     event ReleasedTokens(uint _amount);
     event TokensClaimed(address _participant, uint tokensToGetFromWhiteList);
-     
+    
 	function VernamCrowdSale(address _benecifiary,address _vernamWhiteListDepositAddress, address _vernamCrowdSaleTokenAddress) public {
 		benecifiary = _benecifiary;
 		vernamCrowdsaleToken = VernamCrowdSaleToken(_vernamCrowdSaleTokenAddress);
@@ -215,20 +215,19 @@ contract VernamCrowdSale is Ownable {
 		contributedInWei[_participant] = contributedInWei[_participant].add(_weiAmount);
 		
 		if(isThreeHotHoursActive == true) {
-			threeHotHoursTokens[_participant] = (threeHotHoursTokens[_participant].add(currentLevelTokens)).mul(POW);
+			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
 			isCalculated[_participant] = false;
 			if(nextLevelTokens > 0) {
-			vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens.mul(POW));       
+			vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);       
 			} 
 		} else {	
-			vernamCrowdsaleToken.mintToken(_participant, tokensAmount.mul(POW));        
+			vernamCrowdsaleToken.mintToken(_participant, tokensAmount);        
 		}
 		
-		totalSoldTokens = totalSoldTokens.add(tokensAmount.mul(POW));
+		totalSoldTokens = totalSoldTokens.add(tokensAmount);
 		totalContributedWei = totalContributedWei.add(_weiAmount);
 		
-		
-		emit TokensBought(_participant, _weiAmount, tokensAmount.mul(POW));
+		emit TokensBought(_participant, _weiAmount, tokensAmount);
 		
 		return true;
 	}
@@ -283,6 +282,8 @@ contract VernamCrowdSale is Ownable {
 	        currentLevelTokensAmount = weiAmount.div(currentLevelPrice);
 			nextLevelTokensAmount = 0;
 	    }
+	    currentLevelTokensAmount = currentLevelTokensAmount.mul(POW);
+	    nextLevelTokensAmount = nextLevelTokensAmount.mul(POW);
 
 		return (currentLevelTokensAmount, nextLevelTokensAmount);
 	}
