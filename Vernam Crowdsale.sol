@@ -81,18 +81,18 @@ contract VernamCrowdSale is Ownable {
 	uint public threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
 	uint public threeHotHoursEnd;
 
-	uint constant public firstStageDuration = 24 hours;
-	uint constant public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
-	uint constant public firstStageTokensCap = 100000000000000000000000; // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
+	uint public firstStageDuration = 24 hours;
+	uint public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
+	uint public firstStageTokensCap; // = 100000000000000000000000; // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
 
-    uint public firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
+    uint public firstStageCapInWei; // = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
 	uint public firstStageEnd;
 	
 	uint constant public secondStageDuration = 6 days;
 	uint constant public secondStagePriceOfTokenInWei = 400000000000000 wei;    //1 eth == 2500
-	uint constant public secondStageTokensCap = 100000000000000000000000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
+	uint constant public secondStageTokensCap; // = 100000000000000000000000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
     
-    uint public secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
+    uint public secondStageCapInWei; // = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
 	uint public secondStageEnd;
 	
 	uint constant public thirdStageDuration = 26 days;
@@ -100,11 +100,11 @@ contract VernamCrowdSale is Ownable {
 	
 	uint constant public thirdStageDiscountPriceOfTokenInWei = 800000000000000 wei;  //1 eth == 1250
 	
-	uint constant public thirdStageTokens = 100000000000000000000000; // 100 000 tokens //maybe not constant because we must recalculate if previous have remainig
+	uint constant public thirdStageTokens; // = 100000000000000000000000; // 100 000 tokens //maybe not constant because we must recalculate if previous have remainig
 	uint public thirdStageEnd;
 	
-	uint public thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
-	uint public thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
+	uint public thirdStageDiscountCapInWei; // = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
+	uint public thirdStageCapInWei; // = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
 	
 	uint constant public TOKENS_SOFT_CAP = 40000000000000000000000000;  // 40 000 000 with 18 decimals
 	uint constant public TOKENS_HARD_CAP = 500000000000000000000000000; // 500 000 000 with 18 decimals
@@ -243,6 +243,11 @@ contract VernamCrowdSale is Ownable {
 		if(block.timestamp < firstStageEnd || totalSoldTokens < firstStageTokensCap) {
 		    (_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, firstStagePriceOfTokenInWei, secondStagePriceOfTokenInWei, firstStageCapInWei);
 			
+			if(totalSoldTokens < threeHotHoursTokensCap) {
+			    firstStageTokensCap = (threeHotHoursTokensCap.sub(totalSoldTokens)).add(100000000000000000000000);
+                firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
+			}
+			
 			isThreeHotHoursActive = false;
 			
 			return (_currentLevelTokensAmount, _nextLevelTokensAmount);
@@ -250,16 +255,37 @@ contract VernamCrowdSale is Ownable {
 		
 		if(block.timestamp < secondStageEnd || totalSoldTokens < secondStageTokensCap) {
 			(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, secondStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, secondStageCapInWei);
+			
+			if(totalSoldTokens < firstStageTokensCap) {
+			    secondStageTokensCap = (firstStageTokensCap.sub(totalSoldTokens)).add(100000000000000000000000);
+    
+                secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
+			}
+			
 			return (_currentLevelTokensAmount, _nextLevelTokensAmount);
 		}
 		
 		if(block.timestamp < thirdStageEnd || totalSoldTokens < thirdStageTokens && weiAmount > FIFTEEN_ETHERS) {
 			(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountCapInWei);
+			
+			if(totalSoldTokens < secondStageTokensCap) {
+			    thirdStageTokens = (secondStageTokensCap.sub(totalSoldTokens)).add(100000000000000000000000);
+    
+                thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
+			}
+			
 			return (_currentLevelTokensAmount, _nextLevelTokensAmount);
 		}
 		
 		if(block.timestamp < thirdStageEnd || totalSoldTokens < thirdStageTokens){
 			(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, thirdStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, thirdStageCapInWei);
+			
+			if(totalSoldTokens < secondStageTokensCap) {
+			    thirdStageTokens = (secondStageTokensCap.sub(totalSoldTokens)).add(100000000000000000000000);
+                
+                thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
+			}
+			
 			return (_currentLevelTokensAmount, _nextLevelTokensAmount);
 		}
 		
