@@ -77,8 +77,8 @@ contract VernamCrowdSale is Ownable {
     
 	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
-	uint public threeHotHoursTokensCap = 100000000000000000000000; // 100 000 tokens
-	uint public threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
+	uint public threeHotHoursTokensCap; //= 100000000000000000000000; // 100 000 tokens
+	uint public threeHotHoursCapInWei; //= threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
 	uint public threeHotHoursEnd;
 
 	uint public firstStageDuration = 24 hours;
@@ -156,18 +156,15 @@ contract VernamCrowdSale is Ownable {
 	    vernamWhiteListDeposit = VernamWhiteListDeposit(_vernamWhiteListDepositAddress);
         
 		isInCrowdsale = false;
-		
 	}
 	
 	function activateCrowdSale() public onlyOwner {
 	    
 	    isThreeHotHoursActive = true;
 		
-		startTime = block.timestamp;
-		threeHotHoursEnd = startTime.add(threeHotHoursDuration);
-		firstStageEnd = threeHotHoursEnd.add(firstStageDuration);
-		secondStageEnd = firstStageEnd.add(secondStageDuration);
-		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
+		setTimeForCrowdsalePeriods();
+		
+		setCapForCrowdsalePeriods();
 
 	    //uint whiteListParticipantsCount = vernamWhiteListDeposit.getCounter();
 	    //uint tokensForClaim = tokensToGetFromWhiteList.mul(whiteListParticipantsCount);
@@ -178,6 +175,29 @@ contract VernamCrowdSale is Ownable {
 		isInCrowdsale = true; // NEW
 		
 	    emit CrowdsaleActivated(startTime, thirdStageEnd);
+	}
+
+	function setTimeForCrowdsalePeriods() internal {
+		startTime = block.timestamp;
+		threeHotHoursEnd = startTime.add(threeHotHoursDuration);
+		firstStageEnd = threeHotHoursEnd.add(firstStageDuration);
+		secondStageEnd = firstStageEnd.add(secondStageDuration);
+		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
+	}
+
+	function setCapForCrowdsalePeriods() internal {
+		threeHotHoursTokensCap = 100000000000000000000000;
+		threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
+
+		firstStageTokensCap = 100000000000000000000000;
+		firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
+
+		secondStageTokensCap = 100000000000000000000000;
+		secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
+
+		thirdStageTokens = 100000000000000000000000;
+		thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
+		thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
 	}
 	
 	function timeLock() internal {
