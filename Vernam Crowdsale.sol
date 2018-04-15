@@ -60,6 +60,7 @@ contract Ownable {
 	}
 }
 
+
 contract VernamCrowdSale is Ownable {
 	using SafeMath for uint256;
 		
@@ -90,7 +91,7 @@ contract VernamCrowdSale is Ownable {
 	
 	uint constant public secondStageDuration = 6 days;
 	uint constant public secondStagePriceOfTokenInWei = 400000000000000 wei;    //1 eth == 2500
-	uint constant public secondStageTokensCap; // = 100000000000000000000000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
+	uint public secondStageTokensCap; // = 100000000000000000000000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
     
     uint public secondStageCapInWei; // = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
 	uint public secondStageEnd;
@@ -100,7 +101,7 @@ contract VernamCrowdSale is Ownable {
 	
 	uint constant public thirdStageDiscountPriceOfTokenInWei = 800000000000000 wei;  //1 eth == 1250
 	
-	uint constant public thirdStageTokens; // = 100000000000000000000000; // 100 000 tokens //maybe not constant because we must recalculate if previous have remainig
+	uint public thirdStageTokens; // = 100000000000000000000000; // 100 000 tokens //maybe not constant because we must recalculate if previous have remainig
 	uint public thirdStageEnd;
 	
 	uint public thirdStageDiscountCapInWei; // = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
@@ -264,7 +265,7 @@ contract VernamCrowdSale is Ownable {
 		    (_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, firstStagePriceOfTokenInWei, secondStagePriceOfTokenInWei, firstStageCapInWei);
 			
 			if(totalSoldTokens < threeHotHoursTokensCap) {
-			    firstStageTokensCap = (threeHotHoursTokensCap.sub(totalSoldTokens)).add(100000000000000000000000);
+			    firstStageTokensCap = (threeHotHoursTokensCap.sub(totalSoldTokens)).add(firstStageTokensCap);
                 firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
 			}
 			
@@ -277,7 +278,7 @@ contract VernamCrowdSale is Ownable {
 			(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, secondStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, secondStageCapInWei);
 			
 			if(totalSoldTokens < firstStageTokensCap) {
-			    secondStageTokensCap = (firstStageTokensCap.sub(totalSoldTokens)).add(100000000000000000000000);
+			    secondStageTokensCap = (firstStageTokensCap.sub(totalSoldTokens)).add(secondStageTokensCap);
     
                 secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
 			}
@@ -289,7 +290,7 @@ contract VernamCrowdSale is Ownable {
 			(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountCapInWei);
 			
 			if(totalSoldTokens < secondStageTokensCap) {
-			    thirdStageTokens = (secondStageTokensCap.sub(totalSoldTokens)).add(100000000000000000000000);
+			    thirdStageTokens = (secondStageTokensCap.sub(totalSoldTokens)).add(thirdStageTokens);
     
                 thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
 			}
@@ -301,7 +302,7 @@ contract VernamCrowdSale is Ownable {
 			(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, thirdStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, thirdStageCapInWei);
 			
 			if(totalSoldTokens < secondStageTokensCap) {
-			    thirdStageTokens = (secondStageTokensCap.sub(totalSoldTokens)).add(100000000000000000000000);
+			    thirdStageTokens = (secondStageTokensCap.sub(totalSoldTokens)).add(thirdStageTokens);
                 
                 thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
 			}
