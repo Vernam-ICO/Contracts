@@ -60,7 +60,6 @@ contract Ownable {
 	}
 }
 
-
 contract VernamCrowdSale is Ownable {
 	using SafeMath for uint256;
 		
@@ -76,13 +75,13 @@ contract VernamCrowdSale is Ownable {
 	uint constant maximumContribution = 500 ether;
 	uint public totalContributedWei;
     
-	uint constant public threeHotHoursDuration = 3 hours;
+	uint constant public threeHotHoursDuration = 3 minutes;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
 	uint public threeHotHoursTokensCap; //= 100000000000000000000000; // 100 000 tokens
 	uint public threeHotHoursCapInWei; //= threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
 	uint public threeHotHoursEnd;
 
-	uint public firstStageDuration = 24 hours;
+	uint public firstStageDuration = 7 minutes;
 	uint public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
 	uint public firstStageTokensCap; // = 100000000000000000000000; // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
 
@@ -187,16 +186,16 @@ contract VernamCrowdSale is Ownable {
 	}
 
 	function setCapForCrowdsalePeriods() internal {
-		threeHotHoursTokensCap = 100000000000000000000000;
+		threeHotHoursTokensCap = 1000000000000000000000000;
 		threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
 
-		firstStageTokensCap = 100000000000000000000000;
+		firstStageTokensCap = 2000000000000000000000000;
 		firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
 
-		secondStageTokensCap = 100000000000000000000000;
+		secondStageTokensCap = 3000000000000000000000000;
 		secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
 
-		thirdStageTokens = 100000000000000000000000;
+		thirdStageTokens = 5000000000000000000000000;
 		thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
 		thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
 	}
@@ -335,14 +334,16 @@ contract VernamCrowdSale is Ownable {
 		return (currentLevelTokensAmount, nextLevelTokensAmount);
 	}
 	
+	function release() public {
+	    releaseThreeHotHourTokens(msg.sender);
+	}
+	
 	function releaseThreeHotHourTokens(address _participant) public isAfterThreeHotHours returns(bool) { 
-		uint _amount = unlockTokensAmount(_participant);
-		
 		if(isCalculated[_participant] == false) {
 		    calculateTokensForMonth(_participant);
 		    isCalculated[_participant] = true;
 		}
-		
+		uint _amount = unlockTokensAmount(_participant);
 		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
 		vernamCrowdsaleToken.mintToken(_participant, _amount);        
 
@@ -350,6 +351,7 @@ contract VernamCrowdSale is Ownable {
 		
 		return true;
 	}
+	
 	
 	function calculateTokensForMonth(address _participant) internal {
 	    uint maxBalance = threeHotHoursTokens[_participant];
