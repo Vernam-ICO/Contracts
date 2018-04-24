@@ -29,6 +29,7 @@ library SafeMath {
 		return c;
 	}
 }
+
 contract Ownable {
 	address public owner;
 	address public controller;
@@ -75,13 +76,13 @@ contract VernamCrowdSale is Ownable {
 	uint constant maximumContribution = 500 ether;
 	uint public totalContributedWei;
     
-	uint constant public threeHotHoursDuration = 3 minutes;
+	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
 	uint public threeHotHoursTokensCap; //= 100000000000000000000000; // 100 000 tokens
 	uint public threeHotHoursCapInWei; //= threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
 	uint public threeHotHoursEnd;
 
-	uint public firstStageDuration = 7 minutes;
+	uint public firstStageDuration = 7 days;
 	uint public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
 	uint public firstStageTokensCap; // = 100000000000000000000000; // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
 
@@ -129,10 +130,6 @@ contract VernamCrowdSale is Ownable {
 	VernamWhiteListDeposit public vernamWhiteListDeposit;
 	
 	// Modifiers
-    modifier softCapNotReached() {
-        require(totalSoldTokens < TOKENS_SOFT_CAP);
-        _;    
-    }
     
     modifier afterCrowdsale() {
         require(block.timestamp > thirdStageEnd);
@@ -427,12 +424,6 @@ contract VernamCrowdSale is Ownable {
     
     function getContributedAmountInWei(address _participant) public view returns (uint) {
         return contributedInWei[_participant];
-    }
-    
-    function setContributedAmountInWei(address _participant) public softCapNotReached afterCrowdsale onlyController returns (bool) { //view ???
-        contributedInWei[_participant] = 0;
-        
-        return true;
     }
     
     /* 

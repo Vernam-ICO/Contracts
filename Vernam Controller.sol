@@ -13,21 +13,6 @@ contract Controller {
 		vernamToken = VernamToken(_vernamToken);
     }
     
-    function safeWithdraw() public {
-        refund(msg.sender);
-    }
-    
-    function refund(address _to) internal {
-        uint amountInWei = vernamCrowdSale.getContributedAmountInWei(_to);
-
-        require(amountInWei > 0);
-        
-        vernamCrowdSale.setContributedAmountInWei(_to);
-        _to.transfer(amountInWei);
-        
-        emit Refunded(_to, amountInWei);
-    }
-    
     function releaseThreeHotHourTokens() public {
         vernamCrowdSale.releaseThreeHotHourTokens(msg.sender);
     }
