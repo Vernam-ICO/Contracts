@@ -60,40 +60,48 @@ contract Ownable {
 		controller = _controller;
 	}
 }
-
 contract VernamCrowdSale is Ownable {
 	using SafeMath for uint256;
-		
-	address public benecifiary;
 	
-	bool public isThreeHotHoursActive;
-	bool public isInCrowdsale; // NEW
-	
-	uint public startTime;
-	uint public totalSoldTokens;
 	uint constant FIFTEEN_ETHERS = 15 ether;
 	uint constant minimumContribution = 100 finney;
 	uint constant maximumContribution = 500 ether;
+	
+	uint constant FIRST_MONTH = 0;
+	uint constant SECOND_MONTH = 1;
+	uint constant THIRD_MONTH = 2;
+	uint constant FORTH_MONTH = 3;
+	uint constant FIFTH_MONTH = 4;
+	uint constant SIXTH_MONTH = 5;	
+	
+	address public benecifiary;
+	
+	bool public isThreeHotHoursActive;
+	bool public isInCrowdsale;
+	
+	uint public startTime;
+	uint public totalSoldTokens;
+	
 	uint public totalContributedWei;
     
 	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
-	uint public threeHotHoursTokensCap; //= 100000000000000000000000; // 100 000 tokens
-	uint public threeHotHoursCapInWei; //= threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
+	uint public threeHotHoursTokensCap; 
+	uint public threeHotHoursCapInWei; 
 	uint public threeHotHoursEnd;
 
 	uint public firstStageDuration = 7 days;
 	uint public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
-	uint public firstStageTokensCap; // = 100000000000000000000000; // 100 000 tokens  //maybe not constant because we must recalculate if previous have remainig
+	uint public firstStageTokensCap;
 
-    uint public firstStageCapInWei; // = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
+    uint public firstStageCapInWei;
 	uint public firstStageEnd;
 	
 	uint constant public secondStageDuration = 6 days;
 	uint constant public secondStagePriceOfTokenInWei = 400000000000000 wei;    //1 eth == 2500
-	uint public secondStageTokensCap; // = 100000000000000000000000; // 100 000 tokens       //maybe not constant because we must recalculate if previous have remainig
+	uint public secondStageTokensCap; 
     
-    uint public secondStageCapInWei; // = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
+    uint public secondStageCapInWei;
 	uint public secondStageEnd;
 	
 	uint constant public thirdStageDuration = 26 days;
@@ -101,11 +109,11 @@ contract VernamCrowdSale is Ownable {
 	
 	uint constant public thirdStageDiscountPriceOfTokenInWei = 800000000000000 wei;  //1 eth == 1250
 	
-	uint public thirdStageTokens; // = 100000000000000000000000; // 100 000 tokens //maybe not constant because we must recalculate if previous have remainig
+	uint public thirdStageTokens; 
 	uint public thirdStageEnd;
 	
-	uint public thirdStageDiscountCapInWei; // = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
-	uint public thirdStageCapInWei; // = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
+	uint public thirdStageDiscountCapInWei; 
+	uint public thirdStageCapInWei;
 	
 	uint constant public TOKENS_SOFT_CAP = 40000000000000000000000000;  // 40 000 000 with 18 decimals
 	uint constant public TOKENS_HARD_CAP = 500000000000000000000000000; // 500 000 000 with 18 decimals
@@ -114,11 +122,11 @@ contract VernamCrowdSale is Ownable {
 	
 	// Constants for Realase Three Hot Hours
 	uint constant public LOCK_TOKENS_DURATION = 30 days;
-	uint public FIRST_MONTH_END ;
-	uint public SECOND_MONTH_END ;
-	uint public THIRD_MONTH_END ;
-	uint public FOURTH_MONTH_END ;
-	uint public FIFTH_MONTH_END ;
+	uint public firstMonthEnd;
+	uint public secondMonthEnd;
+	uint public thirdMonthEnd;
+	uint public fourthMonthEnd;
+	uint public fifthMonthEnd;
 
 	mapping(address => uint) public contributedInWei;
 	mapping(address => uint) public threeHotHoursTokens;
@@ -169,40 +177,9 @@ contract VernamCrowdSale is Ownable {
 	    
 		timeLock();
 		
-		isInCrowdsale = true; // NEW
+		isInCrowdsale = true;
 		
 	    emit CrowdsaleActivated(startTime, thirdStageEnd);
-	}
-
-	function setTimeForCrowdsalePeriods() internal {
-		startTime = block.timestamp;
-		threeHotHoursEnd = startTime.add(threeHotHoursDuration);
-		firstStageEnd = threeHotHoursEnd.add(firstStageDuration);
-		secondStageEnd = firstStageEnd.add(secondStageDuration);
-		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
-	}
-
-	function setCapForCrowdsalePeriods() internal {
-		threeHotHoursTokensCap = 1000000000000000000000000;
-		threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
-
-		firstStageTokensCap = 2000000000000000000000000;
-		firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
-
-		secondStageTokensCap = 3000000000000000000000000;
-		secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
-
-		thirdStageTokens = 5000000000000000000000000;
-		thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
-		thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
-	}
-	
-	function timeLock() internal {
-		FIRST_MONTH_END = (startTime.add(LOCK_TOKENS_DURATION)).add(threeHotHoursDuration);
-		SECOND_MONTH_END = FIRST_MONTH_END.add(LOCK_TOKENS_DURATION);
-		THIRD_MONTH_END = SECOND_MONTH_END.add(LOCK_TOKENS_DURATION);
-		FOURTH_MONTH_END = THIRD_MONTH_END.add(LOCK_TOKENS_DURATION);
-		FIFTH_MONTH_END = FOURTH_MONTH_END.add(LOCK_TOKENS_DURATION);
 	}
 	
 	function() public payable {
@@ -210,7 +187,7 @@ contract VernamCrowdSale is Ownable {
 	}
 	
 	function buyTokens(address _participant, uint _weiAmount) public payable returns(bool) {
-		require(isInCrowdsale == true); // NEW
+		require(isInCrowdsale == true);
 		require(_weiAmount >= minimumContribution); // if value is smaller than most expensive stage price will count 0 tokens 
 		require(_weiAmount <= maximumContribution);
 		
@@ -221,7 +198,6 @@ contract VernamCrowdSale is Ownable {
 		(currentLevelTokens, nextLevelTokens) = calculateAndCreateTokens(_weiAmount);
 		uint tokensAmount = currentLevelTokens.add(nextLevelTokens);
 		
-		// NEW
 		if(totalSoldTokens.add(tokensAmount) >= TOKENS_HARD_CAP) {
 			isInCrowdsale = false;
 		}
@@ -235,7 +211,8 @@ contract VernamCrowdSale is Ownable {
 			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
 			isCalculated[_participant] = false;
 			if(nextLevelTokens > 0) {
-			vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);       
+				vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);
+			    isThreeHotHoursActive = false;
 			} 
 		} else {	
 			vernamCrowdsaleToken.mintToken(_participant, tokensAmount);        
@@ -258,55 +235,57 @@ contract VernamCrowdSale is Ownable {
 		}
 		
 		if(block.timestamp < firstStageEnd || totalSoldTokens < firstStageTokensCap) {
-		    (_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, firstStagePriceOfTokenInWei, secondStagePriceOfTokenInWei, firstStageCapInWei);
 			
-			if(totalSoldTokens < threeHotHoursTokensCap) {
-			    firstStageTokensCap = (threeHotHoursTokensCap.sub(totalSoldTokens)).add(firstStageTokensCap);
-                firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
-			}
-			
-			isThreeHotHoursActive = false;
-			
-			return (_currentLevelTokensAmount, _nextLevelTokensAmount);
+			return getCurrentAndNextLevelTokensAmount(weiAmount, firstStagePriceOfTokenInWei, secondStagePriceOfTokenInWei, firstStageCapInWei, threeHotHoursTokensCap, firstStageTokensCap);
 		}
 		
-		if(block.timestamp < secondStageEnd || totalSoldTokens < secondStageTokensCap) {
-			(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, secondStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, secondStageCapInWei);
-			
-			if(totalSoldTokens < firstStageTokensCap) {
-			    secondStageTokensCap = (firstStageTokensCap.sub(totalSoldTokens)).add(secondStageTokensCap);
-    
-                secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
-			}
-			
-			return (_currentLevelTokensAmount, _nextLevelTokensAmount);
+		if(block.timestamp < secondStageEnd || totalSoldTokens < secondStageTokensCap) {			
+			return getCurrentAndNextLevelTokensAmount(weiAmount, secondStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, secondStageCapInWei, firstStageTokensCap, secondStageTokensCap);
 		}
 		
 		if(block.timestamp < thirdStageEnd || totalSoldTokens < thirdStageTokens && weiAmount > FIFTEEN_ETHERS) {
-			(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountCapInWei);
-			
-			if(totalSoldTokens < secondStageTokensCap) {
-			    thirdStageTokens = (secondStageTokensCap.sub(totalSoldTokens)).add(thirdStageTokens);
-    
-                thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
-			}
-			
-			return (_currentLevelTokensAmount, _nextLevelTokensAmount);
+			return getCurrentAndNextLevelTokensAmount(weiAmount, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountCapInWei, secondStageTokensCap, thirdStageTokens);
 		}
 		
-		if(block.timestamp < thirdStageEnd || totalSoldTokens < thirdStageTokens){
-			(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, thirdStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, thirdStageCapInWei);
-			
-			if(totalSoldTokens < secondStageTokensCap) {
-			    thirdStageTokens = (secondStageTokensCap.sub(totalSoldTokens)).add(thirdStageTokens);
-                
-                thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
-			}
-			
-			return (_currentLevelTokensAmount, _nextLevelTokensAmount);
+		if(block.timestamp < thirdStageEnd || totalSoldTokens < thirdStageTokens){		
+			return getCurrentAndNextLevelTokensAmount(weiAmount, thirdStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, thirdStageCapInWei, secondStageTokensCap, thirdStageTokens);
 		}
 		
 		revert();
+	}
+	
+	function release() public {
+	    releaseThreeHotHourTokens(msg.sender);
+	}
+	
+	function releaseThreeHotHourTokens(address _participant) public isAfterThreeHotHours returns(bool) { 
+		if(isCalculated[_participant] == false) {
+		    calculateTokensForMonth(_participant);
+		    isCalculated[_participant] = true;
+		}
+		uint _amount = unlockTokensAmount(_participant);
+		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
+		vernamCrowdsaleToken.mintToken(_participant, _amount);        
+
+		emit ReleasedTokens(_amount);
+		
+		return true;
+	}
+	
+	function getContributedAmountInWei(address _participant) public view returns (uint) {
+        return contributedInWei[_participant];
+    }
+	
+	function getCurrentAndNextLevelTokensAmount(uint256 weiAmount, uint256 currentStagePriceOfTokenInWei, uint256 nextStagePriceOfTokenInWei, uint256 currentStageCapInWei, uint256 previousTokenCap, uint256 currentTokenCap) internal returns (uint _currentLevelTokensAmount, uint _nextLevelTokensAmount) {
+		
+		(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, currentStagePriceOfTokenInWei, nextStagePriceOfTokenInWei, currentStageCapInWei);
+		
+		if(totalSoldTokens < previousTokenCap) {
+			currentTokenCap = (previousTokenCap.sub(totalSoldTokens)).add(currentTokenCap);
+			currentStageCapInWei = currentStagePriceOfTokenInWei.mul((currentTokenCap).div(POW));
+		}
+		
+		return (_currentLevelTokensAmount, _nextLevelTokensAmount);
 	}
 	
 	function tokensCalculator(uint weiAmount, uint currentLevelPrice, uint nextLevelPrice, uint currentLevelCap) internal view returns (uint256, uint256){
@@ -331,25 +310,6 @@ contract VernamCrowdSale is Ownable {
 		return (currentLevelTokensAmount, nextLevelTokensAmount);
 	}
 	
-	function release() public {
-	    releaseThreeHotHourTokens(msg.sender);
-	}
-	
-	function releaseThreeHotHourTokens(address _participant) public isAfterThreeHotHours returns(bool) { 
-		if(isCalculated[_participant] == false) {
-		    calculateTokensForMonth(_participant);
-		    isCalculated[_participant] = true;
-		}
-		uint _amount = unlockTokensAmount(_participant);
-		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
-		vernamCrowdsaleToken.mintToken(_participant, _amount);        
-
-		emit ReleasedTokens(_amount);
-		
-		return true;
-	}
-	
-	
 	function calculateTokensForMonth(address _participant) internal {
 	    uint maxBalance = threeHotHoursTokens[_participant];
 	    uint percentage = 10;
@@ -362,42 +322,35 @@ contract VernamCrowdSale is Ownable {
 	    }
 	}
 	
-	uint public constant FIRST_MONTH = 0;
-	uint public constant SECOND_MONTH = 1;
-	uint public constant THIRD_MONTH = 2;
-	uint public constant FORTH_MONTH = 3;
-	uint public constant FIFTH_MONTH = 4;
-	uint public constant SIXTH_MONTH = 5;
-	
 	function unlockTokensAmount(address _participant) internal returns (uint) {
 		require(threeHotHoursTokens[_participant] > 0);
 		
-        if(block.timestamp < FIRST_MONTH_END && isTokensTaken[_participant][FIRST_MONTH] == false) {
+        if(block.timestamp < firstMonthEnd && isTokensTaken[_participant][FIRST_MONTH] == false) {
             return getTokens(_participant, FIRST_MONTH.add(1)); // First month
         } 
         
-        if(((block.timestamp >= FIRST_MONTH_END) && (block.timestamp < SECOND_MONTH_END)) 
+        if(((block.timestamp >= firstMonthEnd) && (block.timestamp < secondMonthEnd)) 
             && isTokensTaken[_participant][SECOND_MONTH] == false) 
         {
             return getTokens(_participant, SECOND_MONTH.add(1)); // Second month
         } 
         
-        if(((block.timestamp >= SECOND_MONTH_END) && (block.timestamp < THIRD_MONTH_END)) 
+        if(((block.timestamp >= secondMonthEnd) && (block.timestamp < thirdMonthEnd)) 
             && isTokensTaken[_participant][THIRD_MONTH] == false) {
             return getTokens(_participant, THIRD_MONTH.add(1)); // Third month
         } 
         
-        if(((block.timestamp >= THIRD_MONTH_END) && (block.timestamp < FOURTH_MONTH_END)) 
+        if(((block.timestamp >= thirdMonthEnd) && (block.timestamp < fourthMonthEnd)) 
             && isTokensTaken[_participant][FORTH_MONTH] == false) {
             return getTokens(_participant, FORTH_MONTH.add(1)); // Forth month
         } 
         
-        if(((block.timestamp >= FOURTH_MONTH_END) && (block.timestamp < FIFTH_MONTH_END)) 
+        if(((block.timestamp >= fourthMonthEnd) && (block.timestamp < fifthMonthEnd)) 
             && isTokensTaken[_participant][FIFTH_MONTH] == false) {
             return getTokens(_participant, FIFTH_MONTH.add(1)); // Fifth month
         } 
         
-        if((block.timestamp >= FIFTH_MONTH_END) 
+        if((block.timestamp >= fifthMonthEnd) 
             && isTokensTaken[_participant][SIXTH_MONTH] == false) {
             return getTokens(_participant, SIXTH_MONTH.add(1)); // Last month
         }
@@ -406,8 +359,8 @@ contract VernamCrowdSale is Ownable {
     function getTokens(address _participant, uint _period) internal returns(uint) {
         uint tokens = 0;
         for(uint month = 0; month < _period; month++) { // We can make it <= and do not add 1 to constants 
-            if(isTokensTaken[_participant][month] == false) { // We can check is there a balance in getTokensBalance() and we do not need this boolean
-                isTokensTaken[_participant][month] == true; // we do not need it
+            if(isTokensTaken[_participant][month] == false) { 
+                isTokensTaken[_participant][month] == true;
                 
                 tokens += getTokensBalance[_participant][month];
                 getTokensBalance[_participant][month] = 0;
@@ -421,10 +374,37 @@ contract VernamCrowdSale is Ownable {
         require(_participant != address(0));
         require(_weiAmount != 0);
     }
-    
-    function getContributedAmountInWei(address _participant) public view returns (uint) {
-        return contributedInWei[_participant];
-    }
+	
+	function setTimeForCrowdsalePeriods() internal {
+		startTime = block.timestamp;
+		threeHotHoursEnd = startTime.add(threeHotHoursDuration);
+		firstStageEnd = threeHotHoursEnd.add(firstStageDuration);
+		secondStageEnd = firstStageEnd.add(secondStageDuration);
+		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
+	}
+
+	function setCapForCrowdsalePeriods() internal {
+		threeHotHoursTokensCap = 1000000000000000000000000;
+		threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
+
+		firstStageTokensCap = 2000000000000000000000000;
+		firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
+
+		secondStageTokensCap = 3000000000000000000000000;
+		secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
+
+		thirdStageTokens = 5000000000000000000000000;
+		thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
+		thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
+	}
+	
+	function timeLock() internal {
+		firstMonthEnd = (startTime.add(LOCK_TOKENS_DURATION)).add(threeHotHoursDuration);
+		secondMonthEnd = firstMonthEnd.add(LOCK_TOKENS_DURATION);
+		thirdMonthEnd = secondMonthEnd.add(LOCK_TOKENS_DURATION);
+		fourthMonthEnd = thirdMonthEnd.add(LOCK_TOKENS_DURATION);
+		fifthMonthEnd = fourthMonthEnd.add(LOCK_TOKENS_DURATION);
+	}
     
     /* 
     
