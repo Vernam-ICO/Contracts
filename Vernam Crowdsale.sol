@@ -63,10 +63,13 @@ contract Ownable {
 contract VernamCrowdSale is Ownable {
 	using SafeMath for uint256;
 	
+	// After day 7 you can contribute only more than 15 ethers 
 	uint constant FIFTEEN_ETHERS = 15 ether;
+	// Minimum and maximum contribution amount
 	uint constant minimumContribution = 100 finney;
 	uint constant maximumContribution = 500 ether;
 	
+	// 
 	uint constant FIRST_MONTH = 0;
 	uint constant SECOND_MONTH = 1;
 	uint constant THIRD_MONTH = 2;
@@ -76,14 +79,20 @@ contract VernamCrowdSale is Ownable {
 	
 	address public benecifiary;
 	
+	// Check if the three hot hours stage active
 	bool public isThreeHotHoursActive;
+    // Check if the crowdsale is active
 	bool public isInCrowdsale;
 	
+	// The start time of the crowdsale
 	uint public startTime;
+	// The total sold tokens
 	uint public totalSoldTokens;
 	
+	// The total contributed wei
 	uint public totalContributedWei;
-    
+
+    // Public parameters for all the stages
 	uint constant public threeHotHoursDuration = 3 hours;
 	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
 	uint public threeHotHoursTokensCap; 
@@ -118,6 +127,7 @@ contract VernamCrowdSale is Ownable {
 	uint constant public TOKENS_SOFT_CAP = 40000000000000000000000000;  // 40 000 000 with 18 decimals
 	uint constant public TOKENS_HARD_CAP = 500000000000000000000000000; // 500 000 000 with 18 decimals
 	
+	// 18 decimals
 	uint constant public POW = 10 ** 18;
 	
 	// Constants for Realase Three Hot Hours
@@ -127,7 +137,8 @@ contract VernamCrowdSale is Ownable {
 	uint public thirdMonthEnd;
 	uint public fourthMonthEnd;
 	uint public fifthMonthEnd;
-
+    
+    // Mappings
 	mapping(address => uint) public contributedInWei;
 	mapping(address => uint) public threeHotHoursTokens;
 	mapping(address => mapping(uint => uint)) public getTokensBalance;
@@ -138,7 +149,6 @@ contract VernamCrowdSale is Ownable {
 	VernamWhiteListDeposit public vernamWhiteListDeposit;
 	
 	// Modifiers
-    
     modifier afterCrowdsale() {
         require(block.timestamp > thirdStageEnd);
         _;
@@ -155,7 +165,13 @@ contract VernamCrowdSale is Ownable {
     event ReleasedTokens(uint _amount);
     event TokensClaimed(address _participant, uint tokensToGetFromWhiteList);
     
-	function VernamCrowdSale(address _benecifiary,address _vernamWhiteListDepositAddress, address _vernamCrowdSaleTokenAddress) public {
+    /** @dev Constructor 
+      * @param _benecifiary TODO
+      * @param _vernamWhiteListDepositAddress The address of the whitelist deposit.
+      * @param _vernamCrowdSaleTokenAddress The address of the crowdsale token.
+      * 
+      */
+	function VernamCrowdSale(address _benecifiary, address _vernamWhiteListDepositAddress, address _vernamCrowdSaleTokenAddress) public {
 		benecifiary = _benecifiary;
 		vernamCrowdsaleToken = VernamCrowdSaleToken(_vernamCrowdSaleTokenAddress);
 	    vernamWhiteListDeposit = VernamWhiteListDeposit(_vernamWhiteListDepositAddress);
@@ -163,6 +179,13 @@ contract VernamCrowdSale is Ownable {
 		isInCrowdsale = false;
 	}
 	
+	/** @dev Function which activates the crowdsale 
+      * Only the owner can call the function
+      * Activates the threeHotHours and the whole crowdsale
+      * Set the duration of crowdsale stages 
+      * Set the tokens and wei cap of crowdsale stages 
+      * Set the duration in which the tokens bought in threeHotHours will be locked
+      */
 	function activateCrowdSale() public onlyOwner {
 	    
 	    isThreeHotHoursActive = true;
@@ -182,22 +205,37 @@ contract VernamCrowdSale is Ownable {
 	    emit CrowdsaleActivated(startTime, thirdStageEnd);
 	}
 	
+	/** @dev Fallback function.
+      * Provides functionality for person to buy tokens.
+      */
 	function() public payable {
 		buyTokens(msg.sender,msg.value);
 	}
 	
-	function buyTokens(address _participant, uint _weiAmount) public payable returns(bool) {
+	/** @dev Buy tokens function
+      * Provides functionality for person to buy tokens.
+      * @param _participant The investor which want to buy tokens.
+      * @param _weiAmount The wei amount which the investor want to contribute.
+      * @return success Is the buy tokens function called successfully.
+      */
+	function buyTokens(address _participant, uint _weiAmount) public payable returns(bool success) {
+	    // Check if the crowdsale is active
 		require(isInCrowdsale == true);
-		require(_weiAmount >= minimumContribution); // if value is smaller than most expensive stage price will count 0 tokens 
+		// Check if the wei amount is between minimum and maximum contribution amount
+		require(_weiAmount >= minimumContribution);
 		require(_weiAmount <= maximumContribution);
 		
+		// Vaidates the purchase 
+		// Check if the _participant address is not null and the weiAmount is not zero
 		validatePurchase(_participant, _weiAmount);
 
 		uint currentLevelTokens;
 		uint nextLevelTokens;
+		// Returns the current and next level tokens amount
 		(currentLevelTokens, nextLevelTokens) = calculateAndCreateTokens(_weiAmount);
 		uint tokensAmount = currentLevelTokens.add(nextLevelTokens);
 		
+		// If the hard cap is reached the crowdsale is not active anymore
 		if(totalSoldTokens.add(tokensAmount) >= TOKENS_HARD_CAP) {
 			isInCrowdsale = false;
 		}
@@ -205,11 +243,15 @@ contract VernamCrowdSale is Ownable {
 		// Transfer Ethers
 		benecifiary.transfer(_weiAmount);
 		
+		// Stores the participant's contributed wei
 		contributedInWei[_participant] = contributedInWei[_participant].add(_weiAmount);
 		
+		// If it is in threeHotHours tokens will not be minted they will be stored in mapping threeHotHoursTokens
 		if(isThreeHotHoursActive == true) {
 			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
 			isCalculated[_participant] = false;
+			// If we overflow threeHotHours tokens cap the tokens for the next level will not be zero
+			// So we should deactivate the threeHotHours and mint tokens
 			if(nextLevelTokens > 0) {
 				vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);
 			    isThreeHotHoursActive = false;
@@ -218,7 +260,10 @@ contract VernamCrowdSale is Ownable {
 			vernamCrowdsaleToken.mintToken(_participant, tokensAmount);        
 		}
 		
+		// Store total sold tokens amount
 		totalSoldTokens = totalSoldTokens.add(tokensAmount);
+		
+		// Store total contributed wei amount
 		totalContributedWei = totalContributedWei.add(_weiAmount);
 		
 		emit TokensBought(_participant, _weiAmount, tokensAmount);
@@ -226,6 +271,11 @@ contract VernamCrowdSale is Ownable {
 		return true;
 	}
 	
+	/** @dev Function which gets the tokens amount for current and next level.
+	  * If we did not overflow the current level cap, the next level tokens will be zero.
+      * @return _currentLevelTokensAmount and _nextLevelTokensAmount Returns the calculated tokens for the current and next level
+      * It is called by calculateAndCreateTokens function
+      */
 	function calculateAndCreateTokens(uint weiAmount) internal returns (uint _currentLevelTokensAmount, uint _nextLevelTokensAmount) {
 
 		if(block.timestamp < threeHotHoursEnd && totalSoldTokens < threeHotHoursTokensCap) {
@@ -254,17 +304,32 @@ contract VernamCrowdSale is Ownable {
 		revert();
 	}
 	
+	/** @dev Realase the tokens from the three hot hours.
+      */
 	function release() public {
 	    releaseThreeHotHourTokens(msg.sender);
 	}
 	
-	function releaseThreeHotHourTokens(address _participant) public isAfterThreeHotHours returns(bool) { 
+	/** @dev Realase the tokens from the three hot hours.
+	  * It can be called after the end of three hot hours
+      * @param _participant The investor who want to release his tokens
+      * @return success Is the release tokens function called successfully.
+      */
+	function releaseThreeHotHourTokens(address _participant) public isAfterThreeHotHours returns(bool success) { 
+	    // Check if the _participants tokens are realased
+	    // If not calculate his tokens for every month and set the isCalculated to true
 		if(isCalculated[_participant] == false) {
 		    calculateTokensForMonth(_participant);
 		    isCalculated[_participant] = true;
 		}
+		
+		// Unlock the tokens amount for the _participant
 		uint _amount = unlockTokensAmount(_participant);
+		
+		// Substract the _amount from the threeHotHoursTokens mapping
 		threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].sub(_amount);
+		
+		// Mint to the _participant vernamCrowdsaleTokens
 		vernamCrowdsaleToken.mintToken(_participant, _amount);        
 
 		emit ReleasedTokens(_amount);
@@ -272,11 +337,25 @@ contract VernamCrowdSale is Ownable {
 		return true;
 	}
 	
+	/** @dev Get contributed amount in wei.
+      * @return contributedInWei[_participant].
+      */
 	function getContributedAmountInWei(address _participant) public view returns (uint) {
         return contributedInWei[_participant];
     }
 	
-	function getCurrentAndNextLevelTokensAmount(uint256 weiAmount, uint256 currentStagePriceOfTokenInWei, uint256 nextStagePriceOfTokenInWei, uint256 currentStageCapInWei, uint256 previousTokenCap, uint256 currentTokenCap) internal returns (uint _currentLevelTokensAmount, uint _nextLevelTokensAmount) {
+	/** @dev Function which gets the tokens amount for current and next level.
+	  * If we did not overflow the current level cap, the next level tokens will be zero.
+      * @param weiAmount Participant's contribution in wei.
+      * @param currentStagePriceOfTokenInWei Price of the tokens for the current level.
+      * @param nextStagePriceOfTokenInWei Price of the tokens for the next level.
+      * @param currentStageCapInWei Current level cap in wei.
+      * @param previousTokenCap Next level cap in wei.
+      * @param currentTokenCap Current stage tokens cap.
+      * @return _currentLevelTokensAmount and _nextLevelTokensAmount Returns the calculated tokens for the current and next level
+      * It is called by calculateAndCreateTokens function
+      */
+	function getCurrentAndNextLevelTokensAmount(uint weiAmount, uint currentStagePriceOfTokenInWei, uint nextStagePriceOfTokenInWei, uint currentStageCapInWei, uint previousTokenCap, uint currentTokenCap) internal returns (uint _currentLevelTokensAmount, uint _nextLevelTokensAmount) {
 		
 		(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, currentStagePriceOfTokenInWei, nextStagePriceOfTokenInWei, currentStageCapInWei);
 		
@@ -288,12 +367,22 @@ contract VernamCrowdSale is Ownable {
 		return (_currentLevelTokensAmount, _nextLevelTokensAmount);
 	}
 	
-	function tokensCalculator(uint weiAmount, uint currentLevelPrice, uint nextLevelPrice, uint currentLevelCap) internal view returns (uint256, uint256){
+	/** @dev Function which calculate tokens for every month (6 months).
+      * @param weiAmount Participant's contribution in wei.
+      * @param currentLevelPrice Price of the tokens for the current level.
+      * @param nextLevelPrice Price of the tokens for the next level.
+      * @param currentLevelCap Current level cap in wei.
+      * @return _currentLevelTokensAmount and _nextLevelTokensAmount Returns the calculated tokens for the current and next level
+      * It is called by getCurrentAndNextLevelTokensAmount function
+      */
+      
+	function tokensCalculator(uint weiAmount, uint currentLevelPrice, uint nextLevelPrice, uint currentLevelCap) internal view returns (uint _currentLevelTokensAmount, uint _nextLevelTokensAmount){
 	    uint currentAmountInWei = 0;
 		uint remainingAmountInWei = 0;
 		uint currentLevelTokensAmount = 0;
 		uint nextLevelTokensAmount = 0;
 		
+		// Check if the contribution overflows and you should buy tokens on next level price
 		if(weiAmount.add(totalContributedWei) > currentLevelCap) {
 		    remainingAmountInWei = (weiAmount.add(totalContributedWei)).sub(currentLevelCap);
 		    currentAmountInWei = weiAmount.sub(remainingAmountInWei);
@@ -310,59 +399,98 @@ contract VernamCrowdSale is Ownable {
 		return (currentLevelTokensAmount, nextLevelTokensAmount);
 	}
 	
+	/** @dev Function which calculate tokens for every month (6 months).
+      * @param _participant The investor whose tokens are calculated.
+      * It is called once from the releaseThreeHotHourTokens function
+      */
 	function calculateTokensForMonth(address _participant) internal {
+	    // Get the max balance of the participant  
 	    uint maxBalance = threeHotHoursTokens[_participant];
+	    
+	    // Start from 10% for the first three months
 	    uint percentage = 10;
 	    for(uint month = 0; month < 6; month++) {
+	        // The fourth month the unlock tokens percentage is increased by 10% and for the fourth and fifth month will be 20%
+	        // It will increase one more by 10% in the last month and will become 30% 
 	        if(month == 3 || month == 5) {
 	            percentage += 10;
 	        }
-	        getTokensBalance[_participant][month] = maxBalance / percentage;
-	        isTokensTaken[_participant][month] = false; // This is not needed we can check if there is balance in getTokensBalance when unlock tokens 
+	        
+	        // Set the participant at which month how much he will get
+	        getTokensBalance[_participant][month] = maxBalance.div(percentage);
+	        
+	        // Set for every month false to see the tokens for the month is not get it 
+	        isTokensTaken[_participant][month] = false; 
 	    }
 	}
 	
-	function unlockTokensAmount(address _participant) internal returns (uint) {
+		
+	/** @dev Function which validates if the participan is not null address and the wei amount is not zero
+      * @param _participant The investor who want to unlock his tokens
+      * @return _tokensAmount Tokens which are unlocked
+      */
+	function unlockTokensAmount(address _participant) internal returns (uint _tokensAmount) {
+	    // Check if the _participant have tokens in threeHotHours stage
 		require(threeHotHoursTokens[_participant] > 0);
 		
+		// Check if the _participant got his tokens in first month and if the time for the first month end has come 
         if(block.timestamp < firstMonthEnd && isTokensTaken[_participant][FIRST_MONTH] == false) {
+            // Go and get the tokens for the current month
             return getTokens(_participant, FIRST_MONTH.add(1)); // First month
         } 
         
+        // Check if the _participant got his tokens in second month and if the time is in the period between first and second month end
         if(((block.timestamp >= firstMonthEnd) && (block.timestamp < secondMonthEnd)) 
-            && isTokensTaken[_participant][SECOND_MONTH] == false) 
-        {
+            && isTokensTaken[_participant][SECOND_MONTH] == false) {
+            // Go and get the tokens for the current month
             return getTokens(_participant, SECOND_MONTH.add(1)); // Second month
         } 
         
+        // Check if the _participant got his tokens in second month and if the time is in the period between second and third month end
         if(((block.timestamp >= secondMonthEnd) && (block.timestamp < thirdMonthEnd)) 
             && isTokensTaken[_participant][THIRD_MONTH] == false) {
+            // Go and get the tokens for the current month
             return getTokens(_participant, THIRD_MONTH.add(1)); // Third month
         } 
         
+        // Check if the _participant got his tokens in second month and if the time is in the period between third and fourth month end
         if(((block.timestamp >= thirdMonthEnd) && (block.timestamp < fourthMonthEnd)) 
             && isTokensTaken[_participant][FORTH_MONTH] == false) {
+            // Go and get the tokens for the current month
             return getTokens(_participant, FORTH_MONTH.add(1)); // Forth month
         } 
         
+        // Check if the _participant got his tokens in second month and if the time is in the period between forth and fifth month end
         if(((block.timestamp >= fourthMonthEnd) && (block.timestamp < fifthMonthEnd)) 
             && isTokensTaken[_participant][FIFTH_MONTH] == false) {
+            // Go and get the tokens for the current month
             return getTokens(_participant, FIFTH_MONTH.add(1)); // Fifth month
         } 
         
+        // Check if the _participant got his tokens in second month and if the time is after the end of the fifth month
         if((block.timestamp >= fifthMonthEnd) 
             && isTokensTaken[_participant][SIXTH_MONTH] == false) {
             return getTokens(_participant, SIXTH_MONTH.add(1)); // Last month
         }
     }
     
-    function getTokens(address _participant, uint _period) internal returns(uint) {
+    /** @dev Function for getting the tokens for unlock
+      * @param _participant The investor who want to unlock his tokens
+      * @param _period The period for which will be unlocked the tokens
+      * @return tokensAmount Returns the amount of tokens for unlocing
+      */
+    function getTokens(address _participant, uint _period) internal returns(uint tokensAmount) {
         uint tokens = 0;
-        for(uint month = 0; month < _period; month++) { // We can make it <= and do not add 1 to constants 
+        for(uint month = 0; month < _period; month++) {
+            // Check if the tokens fot the current month unlocked
             if(isTokensTaken[_participant][month] == false) { 
-                isTokensTaken[_participant][month] == true;
+                // Set the isTokensTaken to true
+                isTokensTaken[_participant][month] = true;
                 
+                // Calculates the tokens
                 tokens += getTokensBalance[_participant][month];
+                
+                // Set the balance for the curren month to zero
                 getTokensBalance[_participant][month] = 0;
             }
         }
@@ -370,11 +498,18 @@ contract VernamCrowdSale is Ownable {
         return tokens;
     }
 	
+	/** @dev Function which validates if the participan is not null address and the wei amount is not zero
+      * @param _participant The investor who want to buy tokens
+      * @param _weiAmount The amount of wei which the investor want to contribute
+      */
 	function validatePurchase(address _participant, uint _weiAmount) pure internal {
         require(_participant != address(0));
         require(_weiAmount != 0);
     }
 	
+	 /** @dev Function which set the duration of crowdsale stages
+      * Called by the activateCrowdSale function 
+      */
 	function setTimeForCrowdsalePeriods() internal {
 		startTime = block.timestamp;
 		threeHotHoursEnd = startTime.add(threeHotHoursDuration);
@@ -383,6 +518,9 @@ contract VernamCrowdSale is Ownable {
 		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
 	}
 
+    /** @dev Function which set the tokens and wei cap of crowdsale stages
+      * Called by the activateCrowdSale function 
+      */
 	function setCapForCrowdsalePeriods() internal {
 		threeHotHoursTokensCap = 1000000000000000000000000;
 		threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
@@ -398,6 +536,9 @@ contract VernamCrowdSale is Ownable {
 		thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
 	}
 	
+	/** @dev Function which set the duration in which the tokens bought in threeHotHours will be locked
+      * Called by the activateCrowdSale function 
+      */
 	function timeLock() internal {
 		firstMonthEnd = (startTime.add(LOCK_TOKENS_DURATION)).add(threeHotHoursDuration);
 		secondMonthEnd = firstMonthEnd.add(LOCK_TOKENS_DURATION);
