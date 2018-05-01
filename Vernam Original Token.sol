@@ -86,7 +86,7 @@ contract VernamToken is ERC20 {
 		require (_to != address(0x0));														// Prevent transfer to 0x0 address.
 		require(_value > 0);
 		require (balances[_from] >= _value);                								// Check if the sender has enough
-		require (balances[_to].add(_value) >= balances[_to]); 								// Check for overflows
+		require (balances[_to].add(_value) > balances[_to]); 								// Check for overflows
 		
 		uint256 previousBalances = balances[_from].add(balances[_to]);					// Save this for an assertion in the future
 		
