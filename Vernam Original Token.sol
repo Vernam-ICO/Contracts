@@ -84,7 +84,7 @@ contract VernamToken is ERC20 {
 	/* Internal transfer, only can be called by this contract */
 	function _transfer(address _from, address _to, uint256 _value) internal returns (bool _success) {
 		require (_to != address(0x0));														// Prevent transfer to 0x0 address.
-		require(_value > 0);
+		require(_value >= 0);
 		require (balances[_from] >= _value);                								// Check if the sender has enough
 		require (balances[_to].add(_value) > balances[_to]); 								// Check for overflows
 		

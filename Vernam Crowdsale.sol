@@ -94,29 +94,30 @@ contract VernamCrowdSale is Ownable {
 
     // Public parameters for all the stages
 	uint constant public threeHotHoursDuration = 3 hours;
-	uint constant public threeHotHoursPriceOfTokenInWei = 100000000000000 wei; //1 eth == 10 000
+	uint constant public threeHotHoursPriceOfTokenInWei = 51002193094303 wei; //0.000051002193094303 ETH per Token // 19607 VRN per ETH
+		
 	uint public threeHotHoursTokensCap; 
 	uint public threeHotHoursCapInWei; 
 	uint public threeHotHoursEnd;
 
-	uint public firstStageDuration = 7 days;
-	uint public firstStagePriceOfTokenInWei = 200000000000000 wei;    //1 eth == 5000
+	uint public firstStageDuration = 8 days;
+	uint public firstStagePriceOfTokenInWei = 68004080244814 wei;    //0.000068004080244814 ETH per Token // 14705 VRN per ETH
 	uint public firstStageTokensCap;
 
     uint public firstStageCapInWei;
 	uint public firstStageEnd;
 	
-	uint constant public secondStageDuration = 6 days;
-	uint constant public secondStagePriceOfTokenInWei = 400000000000000 wei;    //1 eth == 2500
+	uint constant public secondStageDuration = 12 days;
+	uint constant public secondStagePriceOfTokenInWei = 72004608294930 wei;     //0.000072004608294930 ETH per Token // 13888 VRN per ETH
 	uint public secondStageTokensCap; 
     
     uint public secondStageCapInWei;
 	uint public secondStageEnd;
 	
-	uint constant public thirdStageDuration = 26 days;
-	uint constant public thirdStagePriceOfTokenInWei = 600000000000000 wei;          //1 eth == 1500
+	uint constant public thirdStageDuration = 41 days;
+	uint constant public thirdStagePriceOfTokenInWei = 85005100306018 wei;          //0.000085005100306018 ETH per Token // 11764 VRN per ETH
 	
-	uint constant public thirdStageDiscountPriceOfTokenInWei = 800000000000000 wei;  //1 eth == 1250
+	uint constant public thirdStageDiscountPriceOfTokenInWei = 76005168351447 wei;  //0.000076005168351447 ETH per Token // 13157 VRN per ETH
 	
 	uint public thirdStageTokens; 
 	uint public thirdStageEnd;
@@ -280,12 +281,10 @@ contract VernamCrowdSale is Ownable {
 
 		if(block.timestamp < threeHotHoursEnd && totalSoldTokens < threeHotHoursTokensCap) {
 		    (_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, threeHotHoursPriceOfTokenInWei, firstStagePriceOfTokenInWei, threeHotHoursCapInWei);
-			
 			return (_currentLevelTokensAmount, _nextLevelTokensAmount);
 		}
 		
 		if(block.timestamp < firstStageEnd || totalSoldTokens < firstStageTokensCap) {
-			
 			return getCurrentAndNextLevelTokensAmount(weiAmount, firstStagePriceOfTokenInWei, secondStagePriceOfTokenInWei, firstStageCapInWei, threeHotHoursTokensCap, firstStageTokensCap);
 		}
 		
@@ -395,7 +394,8 @@ contract VernamCrowdSale is Ownable {
 	    }
 	    currentLevelTokensAmount = currentLevelTokensAmount.mul(POW);
 	    nextLevelTokensAmount = nextLevelTokensAmount.mul(POW);
-
+		
+		
 		return (currentLevelTokensAmount, nextLevelTokensAmount);
 	}
 	
@@ -522,16 +522,16 @@ contract VernamCrowdSale is Ownable {
       * Called by the activateCrowdSale function 
       */
 	function setCapForCrowdsalePeriods() internal {
-		threeHotHoursTokensCap = 1000000000000000000000000;
+		threeHotHoursTokensCap = 50000000000000000000000000;
 		threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
 
-		firstStageTokensCap = 2000000000000000000000000;
+		firstStageTokensCap = 50000000000000000000000000;
 		firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
 
-		secondStageTokensCap = 3000000000000000000000000;
+		secondStageTokensCap = 100000000000000000000000000;
 		secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
 
-		thirdStageTokens = 5000000000000000000000000;
+		thirdStageTokens = 250000000000000000000000000;
 		thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
 		thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
 	}
@@ -545,6 +545,29 @@ contract VernamCrowdSale is Ownable {
 		thirdMonthEnd = secondMonthEnd.add(LOCK_TOKENS_DURATION);
 		fourthMonthEnd = thirdMonthEnd.add(LOCK_TOKENS_DURATION);
 		fifthMonthEnd = fourthMonthEnd.add(LOCK_TOKENS_DURATION);
+	}
+	
+	function getPrice(uint256 time, uint256 weiAmount) public view returns (uint levelPrice) {
+
+		if(time < threeHotHoursEnd && totalSoldTokens < threeHotHoursTokensCap) {
+            return threeHotHoursPriceOfTokenInWei;
+		}
+		
+		if(time < firstStageEnd || totalSoldTokens < firstStageTokensCap) {
+            return firstStagePriceOfTokenInWei;
+		}
+		
+		if(time < secondStageEnd || totalSoldTokens < secondStageTokensCap) {
+            return secondStagePriceOfTokenInWei;
+		}
+		
+		if(time < thirdStageEnd || totalSoldTokens < thirdStageTokens && weiAmount > FIFTEEN_ETHERS) {
+            return thirdStageDiscountPriceOfTokenInWei;
+		}
+		
+		if(time < thirdStageEnd || totalSoldTokens < thirdStageTokens){		
+		    return thirdStagePriceOfTokenInWei;
+		}
 	}
     
     /* 
