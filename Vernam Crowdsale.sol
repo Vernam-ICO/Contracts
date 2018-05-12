@@ -271,7 +271,7 @@ contract VernamCrowdSale is Ownable {
       * @return _currentLevelTokensAmount and _nextLevelTokensAmount Returns the calculated tokens for the current and next level
       * It is called by calculateAndCreateTokens function
       */
-	function calculateAndCreateTokens(uint weiAmount) internal returns (uint _currentLevelTokensAmount, uint _nextLevelTokensAmount) {
+	function calculateAndCreateTokens(uint weiAmount) internal view returns (uint _currentLevelTokensAmount, uint _nextLevelTokensAmount) {
 
 		if(block.timestamp < threeHotHoursEnd && totalSoldTokens < threeHotHoursTokensCap) {
 		    (_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, threeHotHoursPriceOfTokenInWei, firstStagePriceOfTokenInWei, threeHotHoursCapInWei);
@@ -292,7 +292,7 @@ contract VernamCrowdSale is Ownable {
 		    return (_currentLevelTokensAmount, 0);
 		}
 		
-		if(block.timestamp < thirdStageEnd && weiAmount > TEN_ETHERS) {
+		if(block.timestamp < thirdStageEnd && weiAmount >= TEN_ETHERS) {
 		    _currentLevelTokensAmount = weiAmount.div(thirdStageDiscountPriceOfTokenInWei);
 	        _currentLevelTokensAmount = _currentLevelTokensAmount.mul(POW);
 	        
