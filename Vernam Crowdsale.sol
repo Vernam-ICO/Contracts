@@ -36,7 +36,7 @@ contract Ownable {
 	
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-	function Ownable() public {
+	constructor() public {
 		owner = msg.sender;
 	}
 
@@ -60,11 +60,12 @@ contract Ownable {
 		controller = _controller;
 	}
 }
+
 contract VernamCrowdSale is Ownable {
 	using SafeMath for uint256;
 	
 	// After day 7 you can contribute only more than 15 ethers 
-	uint constant FIFTEEN_ETHERS = 15 ether;
+	uint constant TEN_ETHERS = 10 ether;
 	// Minimum and maximum contribution amount
 	uint constant minimumContribution = 100 finney;
 	uint constant maximumContribution = 500 ether;
@@ -102,16 +103,12 @@ contract VernamCrowdSale is Ownable {
 
 	uint public firstStageDuration = 8 days;
 	uint public firstStagePriceOfTokenInWei = 68004080244814 wei;    //0.000068004080244814 ETH per Token // 14705 VRN per ETH
-	uint public firstStageTokensCap;
 
-    uint public firstStageCapInWei;
 	uint public firstStageEnd;
 	
 	uint constant public secondStageDuration = 12 days;
 	uint constant public secondStagePriceOfTokenInWei = 72004608294930 wei;     //0.000072004608294930 ETH per Token // 13888 VRN per ETH
-	uint public secondStageTokensCap; 
     
-    uint public secondStageCapInWei;
 	uint public secondStageEnd;
 	
 	uint constant public thirdStageDuration = 41 days;
@@ -119,11 +116,7 @@ contract VernamCrowdSale is Ownable {
 	
 	uint constant public thirdStageDiscountPriceOfTokenInWei = 76005168351447 wei;  //0.000076005168351447 ETH per Token // 13157 VRN per ETH
 	
-	uint public thirdStageTokens; 
 	uint public thirdStageEnd;
-	
-	uint public thirdStageDiscountCapInWei; 
-	uint public thirdStageCapInWei;
 	
 	uint constant public TOKENS_SOFT_CAP = 40000000000000000000000000;  // 40 000 000 with 18 decimals
 	uint constant public TOKENS_HARD_CAP = 500000000000000000000000000; // 500 000 000 with 18 decimals
@@ -172,7 +165,7 @@ contract VernamCrowdSale is Ownable {
       * @param _vernamCrowdSaleTokenAddress The address of the crowdsale token.
       * 
       */
-	function VernamCrowdSale(address _benecifiary, address _vernamWhiteListDepositAddress, address _vernamCrowdSaleTokenAddress) public {
+	constructor(address _benecifiary, address _vernamWhiteListDepositAddress, address _vernamCrowdSaleTokenAddress) public {
 		benecifiary = _benecifiary;
 		vernamCrowdsaleToken = VernamCrowdSaleToken(_vernamCrowdSaleTokenAddress);
 	    vernamWhiteListDeposit = VernamWhiteListDeposit(_vernamWhiteListDepositAddress);
@@ -193,7 +186,8 @@ contract VernamCrowdSale is Ownable {
 		
 		setTimeForCrowdsalePeriods();
 		
-		setCapForCrowdsalePeriods();
+		threeHotHoursTokensCap = 50000000000000000000000000;
+		threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
 
 	    //uint whiteListParticipantsCount = vernamWhiteListDeposit.getCounter();
 	    //uint tokensForClaim = tokensToGetFromWhiteList.mul(whiteListParticipantsCount);
@@ -284,20 +278,32 @@ contract VernamCrowdSale is Ownable {
 			return (_currentLevelTokensAmount, _nextLevelTokensAmount);
 		}
 		
-		if(block.timestamp < firstStageEnd || totalSoldTokens < firstStageTokensCap) {
-			return getCurrentAndNextLevelTokensAmount(weiAmount, firstStagePriceOfTokenInWei, secondStagePriceOfTokenInWei, firstStageCapInWei, threeHotHoursTokensCap, firstStageTokensCap);
+		if(block.timestamp < firstStageEnd) {
+		    _currentLevelTokensAmount = weiAmount.div(firstStagePriceOfTokenInWei);
+	        _currentLevelTokensAmount = _currentLevelTokensAmount.mul(POW);
+	        
+		    return (_currentLevelTokensAmount, 0);
 		}
 		
-		if(block.timestamp < secondStageEnd || totalSoldTokens < secondStageTokensCap) {			
-			return getCurrentAndNextLevelTokensAmount(weiAmount, secondStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, secondStageCapInWei, firstStageTokensCap, secondStageTokensCap);
+		if(block.timestamp < secondStageEnd) {		
+		    _currentLevelTokensAmount = weiAmount.div(secondStagePriceOfTokenInWei);
+	        _currentLevelTokensAmount = _currentLevelTokensAmount.mul(POW);
+	        
+		    return (_currentLevelTokensAmount, 0);
 		}
 		
-		if(block.timestamp < thirdStageEnd || totalSoldTokens < thirdStageTokens && weiAmount > FIFTEEN_ETHERS) {
-			return getCurrentAndNextLevelTokensAmount(weiAmount, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountPriceOfTokenInWei, thirdStageDiscountCapInWei, secondStageTokensCap, thirdStageTokens);
+		if(block.timestamp < thirdStageEnd && weiAmount > TEN_ETHERS) {
+		    _currentLevelTokensAmount = weiAmount.div(thirdStageDiscountPriceOfTokenInWei);
+	        _currentLevelTokensAmount = _currentLevelTokensAmount.mul(POW);
+	        
+		    return (_currentLevelTokensAmount, 0);
 		}
 		
-		if(block.timestamp < thirdStageEnd || totalSoldTokens < thirdStageTokens){		
-			return getCurrentAndNextLevelTokensAmount(weiAmount, thirdStagePriceOfTokenInWei, thirdStagePriceOfTokenInWei, thirdStageCapInWei, secondStageTokensCap, thirdStageTokens);
+		if(block.timestamp < thirdStageEnd){	
+		    _currentLevelTokensAmount = weiAmount.div(thirdStagePriceOfTokenInWei);
+	        _currentLevelTokensAmount = _currentLevelTokensAmount.mul(POW);
+	        
+		    return (_currentLevelTokensAmount, 0);
 		}
 		
 		revert();
@@ -343,36 +349,13 @@ contract VernamCrowdSale is Ownable {
         return contributedInWei[_participant];
     }
 	
-	/** @dev Function which gets the tokens amount for current and next level.
-	  * If we did not overflow the current level cap, the next level tokens will be zero.
-      * @param weiAmount Participant's contribution in wei.
-      * @param currentStagePriceOfTokenInWei Price of the tokens for the current level.
-      * @param nextStagePriceOfTokenInWei Price of the tokens for the next level.
-      * @param currentStageCapInWei Current level cap in wei.
-      * @param previousTokenCap Next level cap in wei.
-      * @param currentTokenCap Current stage tokens cap.
-      * @return _currentLevelTokensAmount and _nextLevelTokensAmount Returns the calculated tokens for the current and next level
-      * It is called by calculateAndCreateTokens function
-      */
-	function getCurrentAndNextLevelTokensAmount(uint weiAmount, uint currentStagePriceOfTokenInWei, uint nextStagePriceOfTokenInWei, uint currentStageCapInWei, uint previousTokenCap, uint currentTokenCap) internal returns (uint _currentLevelTokensAmount, uint _nextLevelTokensAmount) {
-		
-		(_currentLevelTokensAmount, _nextLevelTokensAmount) = tokensCalculator(weiAmount, currentStagePriceOfTokenInWei, nextStagePriceOfTokenInWei, currentStageCapInWei);
-		
-		if(totalSoldTokens < previousTokenCap) {
-			currentTokenCap = (previousTokenCap.sub(totalSoldTokens)).add(currentTokenCap);
-			currentStageCapInWei = currentStagePriceOfTokenInWei.mul((currentTokenCap).div(POW));
-		}
-		
-		return (_currentLevelTokensAmount, _nextLevelTokensAmount);
-	}
-	
 	/** @dev Function which calculate tokens for every month (6 months).
       * @param weiAmount Participant's contribution in wei.
       * @param currentLevelPrice Price of the tokens for the current level.
       * @param nextLevelPrice Price of the tokens for the next level.
       * @param currentLevelCap Current level cap in wei.
       * @return _currentLevelTokensAmount and _nextLevelTokensAmount Returns the calculated tokens for the current and next level
-      * It is called by getCurrentAndNextLevelTokensAmount function
+      * It is called by three hot hours
       */
       
 	function tokensCalculator(uint weiAmount, uint currentLevelPrice, uint nextLevelPrice, uint currentLevelCap) internal view returns (uint _currentLevelTokensAmount, uint _nextLevelTokensAmount){
@@ -517,24 +500,6 @@ contract VernamCrowdSale is Ownable {
 		secondStageEnd = firstStageEnd.add(secondStageDuration);
 		thirdStageEnd = secondStageEnd.add(thirdStageDuration);
 	}
-
-    /** @dev Function which set the tokens and wei cap of crowdsale stages
-      * Called by the activateCrowdSale function 
-      */
-	function setCapForCrowdsalePeriods() internal {
-		threeHotHoursTokensCap = 50000000000000000000000000;
-		threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
-
-		firstStageTokensCap = 50000000000000000000000000;
-		firstStageCapInWei = firstStagePriceOfTokenInWei.mul((firstStageTokensCap).div(POW));
-
-		secondStageTokensCap = 100000000000000000000000000;
-		secondStageCapInWei = secondStagePriceOfTokenInWei.mul((secondStageTokensCap).div(POW));
-
-		thirdStageTokens = 250000000000000000000000000;
-		thirdStageDiscountCapInWei = thirdStageDiscountPriceOfTokenInWei.mul((thirdStageTokens).div(POW));
-		thirdStageCapInWei = thirdStagePriceOfTokenInWei.mul((thirdStageTokens).div(POW));
-	}
 	
 	/** @dev Function which set the duration in which the tokens bought in threeHotHours will be locked
       * Called by the activateCrowdSale function 
@@ -553,19 +518,19 @@ contract VernamCrowdSale is Ownable {
             return threeHotHoursPriceOfTokenInWei;
 		}
 		
-		if(time < firstStageEnd || totalSoldTokens < firstStageTokensCap) {
+		if(time < firstStageEnd) {
             return firstStagePriceOfTokenInWei;
 		}
 		
-		if(time < secondStageEnd || totalSoldTokens < secondStageTokensCap) {
+		if(time < secondStageEnd) {
             return secondStagePriceOfTokenInWei;
 		}
 		
-		if(time < thirdStageEnd || totalSoldTokens < thirdStageTokens && weiAmount > FIFTEEN_ETHERS) {
+		if(time < thirdStageEnd && weiAmount > TEN_ETHERS) {
             return thirdStageDiscountPriceOfTokenInWei;
 		}
 		
-		if(time < thirdStageEnd || totalSoldTokens < thirdStageTokens){		
+		if(time < thirdStageEnd){		
 		    return thirdStagePriceOfTokenInWei;
 		}
 	}
