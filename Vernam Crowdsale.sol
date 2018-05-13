@@ -122,7 +122,7 @@ contract VernamCrowdSale is Ownable {
 	uint constant public TOKENS_HARD_CAP = 500000000000000000000000000; // 500 000 000 with 18 decimals
 	
 	// 18 decimals
-	uint constant public POW = 10 ** 18;
+	uint constant POW = 10 ** 18;
 	
 	// Constants for Realase Three Hot Hours
 	uint constant public LOCK_TOKENS_DURATION = 30 days;
@@ -533,6 +533,10 @@ contract VernamCrowdSale is Ownable {
 		if(time < thirdStageEnd){		
 		    return thirdStagePriceOfTokenInWei;
 		}
+	}
+	
+	function setBenecifiary(address _newBenecifiary) public onlyOwner {
+		benecifiary = _newBenecifiary;
 	}
     
     /* 
