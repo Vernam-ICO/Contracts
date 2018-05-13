@@ -80,8 +80,6 @@ contract VernamCrowdSale is Ownable {
 	
 	address public benecifiary;
 	
-	// Check if the three hot hours stage active
-	bool public isThreeHotHoursActive;
     // Check if the crowdsale is active
 	bool public isInCrowdsale;
 	
@@ -181,9 +179,7 @@ contract VernamCrowdSale is Ownable {
       * Set the duration in which the tokens bought in threeHotHours will be locked
       */
 	function activateCrowdSale() public onlyOwner {
-	    
-	    isThreeHotHoursActive = true;
-		
+	    		
 		setTimeForCrowdsalePeriods();
 		
 		threeHotHoursTokensCap = 50000000000000000000000000;
@@ -242,14 +238,13 @@ contract VernamCrowdSale is Ownable {
 		contributedInWei[_participant] = contributedInWei[_participant].add(_weiAmount);
 		
 		// If it is in threeHotHours tokens will not be minted they will be stored in mapping threeHotHoursTokens
-		if(isThreeHotHoursActive == true) {
+		if(threeHotHoursEnd > block.timestamp) {
 			threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(currentLevelTokens);
 			isCalculated[_participant] = false;
 			// If we overflow threeHotHours tokens cap the tokens for the next level will not be zero
 			// So we should deactivate the threeHotHours and mint tokens
 			if(nextLevelTokens > 0) {
 				vernamCrowdsaleToken.mintToken(_participant, nextLevelTokens);
-			    isThreeHotHoursActive = false;
 			} 
 		} else {	
 			vernamCrowdsaleToken.mintToken(_participant, tokensAmount);        
