@@ -1,4 +1,4 @@
-contract Ownable {
+contract OwnableController {
 	address public owner;
 	address public KYCTeam;
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -27,7 +27,7 @@ contract Ownable {
 		owner = newOwner;
 	}
 }
-contract Controller is Ownable {
+contract Controller is OwnableController {
     
     VernamCrowdSale public vernamCrowdSale;
 	VernamCrowdSaleToken public vernamCrowdsaleToken;
@@ -54,8 +54,9 @@ contract Controller is Ownable {
 	
 	function convertTokens(address _participant) public {
 	    bool isApproved = vernamCrowdsaleToken.isKYCApproved(_participant);
-		if(isApproved == false && isParticipantApproved == true){
+		if(isApproved == false && isParticipantApproved[_participant] == true){
 			vernamCrowdsaleToken.approveKYC(_participant);
+			isApproved = vernamCrowdsaleToken.isKYCApproved(_participant);
 		}
 	    
 	    require(isApproved == true);
@@ -71,7 +72,7 @@ contract Controller is Ownable {
 	
 	function approveKYC(address _participant) public onlyKYCTeam returns(bool _success) {
 	    vernamCrowdsaleToken.approveKYC(_participant);
-		isParticipantApproved[_participant] = vernamCrowdSaleToken.isKYCApproved(_participant);
+		isParticipantApproved[_participant] = vernamCrowdsaleToken.isKYCApproved(_participant);
 	    return isParticipantApproved[_participant];
 	}
 }

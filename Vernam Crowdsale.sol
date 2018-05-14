@@ -157,7 +157,6 @@ contract VernamCrowdSale is Ownable {
     
     /** @dev Constructor 
       * @param _benecifiary TODO
-      * @param _vernamWhiteListDepositAddress The address of the whitelist deposit.
       * @param _vernamCrowdSaleTokenAddress The address of the crowdsale token.
       * 
       */
