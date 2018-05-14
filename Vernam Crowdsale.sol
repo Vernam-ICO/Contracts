@@ -93,30 +93,30 @@ contract VernamCrowdSale is Ownable {
 
     // Public parameters for all the stages
 	uint constant public threeHotHoursDuration = 3 hours;
-	uint constant public threeHotHoursPriceOfTokenInWei = 51002193094303 wei; //0.000051002193094303 ETH per Token // 19607 VRN per ETH
+	uint constant public threeHotHoursPriceOfTokenInWei = 63751115644524 wei; //0.00006375111564452380 ETH per Token // 15686 VRN per ETH
 		
 	uint public threeHotHoursTokensCap; 
 	uint public threeHotHoursCapInWei; 
 	uint public threeHotHoursEnd;
 
 	uint public firstStageDuration = 8 days;
-	uint public firstStagePriceOfTokenInWei = 68004080244814 wei;    //0.000068004080244814 ETH per Token // 14705 VRN per ETH
+	uint public firstStagePriceOfTokenInWei = 85005100306018 wei;    //0.00008500510030601840 ETH per Token // 11764 VRN per ETH
 
 	uint public firstStageEnd;
 	
 	uint constant public secondStageDuration = 12 days;
-	uint constant public secondStagePriceOfTokenInWei = 72004608294930 wei;     //0.000072004608294930 ETH per Token // 13888 VRN per ETH
+	uint constant public secondStagePriceOfTokenInWei = 90000900009000 wei;     //0.00009000090000900010 ETH per Token // 11111 VRN per ETH
     
 	uint public secondStageEnd;
 	
 	uint constant public thirdStageDuration = 41 days;
-	uint constant public thirdStagePriceOfTokenInWei = 85005100306018 wei;          //0.000085005100306018 ETH per Token // 11764 VRN per ETH
+	uint constant public thirdStagePriceOfTokenInWei = 106258633513973 wei;          //0.00010625863351397300 ETH per Token // 9411 VRN per ETH
 	
-	uint constant public thirdStageDiscountPriceOfTokenInWei = 76005168351447 wei;  //0.000076005168351447 ETH per Token // 13157 VRN per ETH
+	uint constant public thirdStageDiscountPriceOfTokenInWei = 95002850085503 wei;  //0.00009500285008550260 ETH per Token // 10526 VRN per ETH
 	
 	uint public thirdStageEnd;
 	
-	uint constant public TOKENS_HARD_CAP = 450000000000000000000000000; // 450 000 000 with 18 decimals //Private Presale sold 50 000 000 tokens
+	uint constant public TOKENS_HARD_CAP = 500000000000000000000000000; // 500 000 000 with 18 decimals
 	
 	// 18 decimals
 	uint constant POW = 10 ** 18;
