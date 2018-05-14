@@ -55,8 +55,8 @@ contract Controller {
 		uint256 tokens = vernamCrowdsaleToken.balanceOf(_participant);
 		
 		require(tokens > 0);
-		require(vernamCrowdsaleToken.burn(_participant, tokens));
-		require(vernamToken.transfer(_participant, tokens));
+		vernamCrowdsaleToken.burn(_participant, tokens);
+		vernamToken.transfer(_participant, tokens);
 		
 		emit Convert(_participant, tokens);
 	}

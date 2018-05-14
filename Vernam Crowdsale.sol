@@ -533,26 +533,4 @@ contract VernamCrowdSale is Ownable {
 	function setBenecifiary(address _newBenecifiary) public onlyOwner {
 		benecifiary = _newBenecifiary;
 	}
-    
-    /* 
-    
-    TODO after whitelist contract is ready 
-    
-    uint constant public whiteListAmountInWei = 10000000000000000; // 0.01 ETH
-    uint public tokensToGetFromWhiteList = whiteListAmountInWei.div(threeHotHoursPriceOfTokenInWei);
-    mapping(address => bool) getWhiteListTokens;
-   
-    function claimTokens(address _participant) public returns (bool) {
-        bool isWhiteListed = vernamWhiteListDeposit.isWhiteList(_participant);
-        require(isWhiteListed == true);
-        require(getWhiteListTokens[_participant] == false);
-        require(block.timestamp < threeHotHoursEnd);
-        getWhiteListTokens[_participant] = true;
-            
-        threeHotHoursTokens[_participant] = threeHotHoursTokens[_participant].add(tokensToGetFromWhiteList);
-        
-        emit TokensClaimed(_participant, tokensToGetFromWhiteList);
-        
-        return true;
-    }*/
 }
