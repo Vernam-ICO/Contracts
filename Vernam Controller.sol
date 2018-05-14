@@ -1,7 +1,6 @@
 contract Ownable {
 	address public owner;
-	address public controller;
-	
+	address public KYCTeam;
 	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
 	constructor() public {
@@ -13,9 +12,13 @@ contract Ownable {
 		_;
 	}
 	
-	modifier onlyController() {
-		require(msg.sender == controller);
+	modifier onlyKYCTeam() {
+		require(msg.sender == KYCTeam);
 		_;
+	}
+	
+	function setKYCTeam(address _KYCTeam) public onlyOwner {
+		KYCTeam = _KYCTeam;
 	}
 
 	function transferOwnership(address newOwner) public onlyOwner {
@@ -23,16 +26,14 @@ contract Ownable {
 		emit OwnershipTransferred(owner, newOwner);
 		owner = newOwner;
 	}
-	
-	function setControler(address _controller) public onlyOwner {
-		controller = _controller;
-	}
 }
-contract Controller {
+contract Controller is Ownable {
     
     VernamCrowdSale public vernamCrowdSale;
 	VernamCrowdSaleToken public vernamCrowdsaleToken;
 	VernamToken public vernamToken;
+	
+	mapping(address => bool) public isParticipantApproved;
     
     event Refunded(address _to, uint amountInWei);
 	event Convert(address indexed participant, uint tokens);
@@ -47,8 +48,15 @@ contract Controller {
         vernamCrowdSale.releaseThreeHotHourTokens(msg.sender);
     }
 	
+	function convertYourTokens() public {
+		convertTokens(msg.sender);
+	}
+	
 	function convertTokens(address _participant) public {
 	    bool isApproved = vernamCrowdsaleToken.isKYCApproved(_participant);
+		if(isApproved == false && isParticipantApproved == true){
+			vernamCrowdsaleToken.approveKYC(_participant);
+		}
 	    
 	    require(isApproved == true);
 	    
@@ -61,9 +69,9 @@ contract Controller {
 		emit Convert(_participant, tokens);
 	}
 	
-	function approveKYC(address _participant) public onlyOwner returns(bool _success) {
+	function approveKYC(address _participant) public onlyKYCTeam returns(bool _success) {
 	    vernamCrowdsaleToken.approveKYC(_participant);
-	    
-	    return true;
+		isParticipantApproved[_participant] = vernamCrowdSaleToken.isKYCApproved(_participant);
+	    return isParticipantApproved[_participant];
 	}
 }

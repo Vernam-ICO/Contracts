@@ -64,7 +64,7 @@ contract Ownable {
 contract VernamCrowdSale is Ownable {
 	using SafeMath for uint256;
 	
-	// After day 7 you can contribute only more than 15 ethers 
+	// After day 7 you can contribute only more than 10 ethers 
 	uint constant TEN_ETHERS = 10 ether;
 	// Minimum and maximum contribution amount
 	uint constant minimumContribution = 100 finney;
@@ -116,8 +116,7 @@ contract VernamCrowdSale is Ownable {
 	
 	uint public thirdStageEnd;
 	
-	uint constant public TOKENS_SOFT_CAP = 40000000000000000000000000;  // 40 000 000 with 18 decimals
-	uint constant public TOKENS_HARD_CAP = 500000000000000000000000000; // 500 000 000 with 18 decimals
+	uint constant public TOKENS_HARD_CAP = 450000000000000000000000000; // 450 000 000 with 18 decimals //Private Presale sold 50 000 000 tokens
 	
 	// 18 decimals
 	uint constant POW = 10 ** 18;
@@ -138,7 +137,6 @@ contract VernamCrowdSale is Ownable {
 	mapping(address => bool) public isCalculated;
 	
 	VernamCrowdSaleToken public vernamCrowdsaleToken;
-	VernamWhiteListDeposit public vernamWhiteListDeposit;
 	
 	// Modifiers
     modifier afterCrowdsale() {
@@ -163,10 +161,9 @@ contract VernamCrowdSale is Ownable {
       * @param _vernamCrowdSaleTokenAddress The address of the crowdsale token.
       * 
       */
-	constructor(address _benecifiary, address _vernamWhiteListDepositAddress, address _vernamCrowdSaleTokenAddress) public {
+	constructor(address _benecifiary, address _vernamCrowdSaleTokenAddress) public {
 		benecifiary = _benecifiary;
 		vernamCrowdsaleToken = VernamCrowdSaleToken(_vernamCrowdSaleTokenAddress);
-	    vernamWhiteListDeposit = VernamWhiteListDeposit(_vernamWhiteListDepositAddress);
         
 		isInCrowdsale = false;
 	}
@@ -182,12 +179,8 @@ contract VernamCrowdSale is Ownable {
 	    		
 		setTimeForCrowdsalePeriods();
 		
-		threeHotHoursTokensCap = 50000000000000000000000000;
+		threeHotHoursTokensCap = 100000000000000000000000000;
 		threeHotHoursCapInWei = threeHotHoursPriceOfTokenInWei.mul((threeHotHoursTokensCap).div(POW));
-
-	    //uint whiteListParticipantsCount = vernamWhiteListDeposit.getCounter();
-	    //uint tokensForClaim = tokensToGetFromWhiteList.mul(whiteListParticipantsCount);
-	    //threeHotHoursTokensCap = threeHotHoursTokensCap.sub(tokensForClaim);
 	    
 		timeLock();
 		
@@ -227,8 +220,9 @@ contract VernamCrowdSale is Ownable {
 		uint tokensAmount = currentLevelTokens.add(nextLevelTokens);
 		
 		// If the hard cap is reached the crowdsale is not active anymore
-		if(totalSoldTokens.add(tokensAmount) >= TOKENS_HARD_CAP) {
+		if(totalSoldTokens.add(tokensAmount) > TOKENS_HARD_CAP) {
 			isInCrowdsale = false;
+			return;
 		}
 		
 		// Transfer Ethers
