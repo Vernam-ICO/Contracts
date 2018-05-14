@@ -156,7 +156,7 @@ contract VernamCrowdSale is Ownable {
     event TokensClaimed(address _participant, uint tokensToGetFromWhiteList);
     
     /** @dev Constructor 
-      * @param _benecifiary TODO
+      * @param _benecifiary
       * @param _vernamCrowdSaleTokenAddress The address of the crowdsale token.
       * 
       */
