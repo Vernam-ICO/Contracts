@@ -38,10 +38,9 @@ contract Controller is OwnableController {
     event Refunded(address _to, uint amountInWei);
 	event Convert(address indexed participant, uint tokens);
     
-    function Controller(address _crowdsaleAddress, address _vernamCrowdSaleToken, address _vernamToken) public {
+    function Controller(address _crowdsaleAddress, address _vernamCrowdSaleToken) public {
         vernamCrowdSale = VernamCrowdSale(_crowdsaleAddress);
 		vernamCrowdsaleToken = VernamCrowdSaleToken(_vernamCrowdSaleToken);
-		vernamToken = VernamToken(_vernamToken);
     }
     
     function releaseThreeHotHourTokens() public {
@@ -74,5 +73,9 @@ contract Controller is OwnableController {
 	    vernamCrowdsaleToken.approveKYC(_participant);
 		isParticipantApproved[_participant] = vernamCrowdsaleToken.isKYCApproved(_participant);
 	    return isParticipantApproved[_participant];
+	}
+	
+	function setVernamOriginalToken(address _vernamToken) public onlyOwner {
+		vernamToken = VernamToken(_vernamToken);
 	}
 }
